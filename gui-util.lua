@@ -39,9 +39,9 @@ function gui_util.effect_button(effect, show_controls)
   local sprite, tooltip, elem_tooltip
 
   if effect.type == "ammo-damage" then
-    sprite = global.effect_icons[effect.ammo_category]
+    sprite = storage.effect_icons[effect.ammo_category]
     tooltip =
-      { "modifier-description." .. effect.ammo_category .. "-damage-bonus", tostring(effect.modifier * 100) .. "%" }
+    { "modifier-description." .. effect.ammo_category .. "-damage-bonus", tostring(effect.modifier * 100) .. "%" }
   elseif effect.type == "give-item" then
     sprite = "item/" .. effect.item
     elem_tooltip = { type = "item", name = effect.item }
@@ -49,7 +49,7 @@ function gui_util.effect_button(effect, show_controls)
       tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
   elseif effect.type == "gun-speed" then
-    sprite = global.effect_icons[effect.ammo_category]
+    sprite = storage.effect_icons[effect.ammo_category]
     tooltip = {
       "modifier-description." .. effect.ammo_category .. "-shooting-speed-bonus",
       tostring(effect.modifier * 100) .. "%",
@@ -69,7 +69,7 @@ function gui_util.effect_button(effect, show_controls)
       tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
   else
-    sprite = global.effect_icons[effect.type] or ("utility/" .. string.gsub(effect.type, "%-", "_") .. "_modifier_icon")
+    sprite = storage.effect_icons[effect.type] or ("utility/" .. string.gsub(effect.type, "%-", "_") .. "_modifier_icon")
     local modifier = effect.modifier
     --- @type LocalisedString
     local formatted = tostring(modifier)
@@ -93,7 +93,7 @@ function gui_util.effect_button(effect, show_controls)
   local overlay_elem
   if overlay_constant then
     overlay_elem =
-      { type = "sprite-button", style = "transparent_slot", sprite = overlay_constant, ignored_by_interaction = true }
+    { type = "sprite-button", style = "transparent_slot", sprite = overlay_constant, ignored_by_interaction = true }
   end
 
   return {
@@ -135,7 +135,7 @@ end
 --- @return TechnologySlotProperties
 function gui_util.get_technology_slot_properties(technology, research_state)
   local max_level_str = technology.prototype.max_level == flib_math.max_uint and "[img=infinity]"
-    or tostring(technology.prototype.max_level)
+      or tostring(technology.prototype.max_level)
   local research_state_str = flib_table.find(flib_technology.research_state, research_state)
   local style = "flib_technology_slot_" .. research_state_str
   if technology.upgrade or flib_technology.is_multilevel(technology) or technology.prototype.level > 1 then
@@ -226,15 +226,15 @@ end
 --- @param index uint?
 --- @return LuaGuiElement
 function gui_util.technology_slot(
-  parent,
-  technology,
-  level,
-  research_state,
-  show_controls,
-  on_click,
-  is_selected,
-  name,
-  index
+    parent,
+    technology,
+    level,
+    research_state,
+    show_controls,
+    on_click,
+    is_selected,
+    name,
+    index
 )
   local slot = flib_gui_templates.technology_slot(parent, technology, level, research_state, on_click, {
     cost = flib_technology.get_research_unit_count(technology, level),

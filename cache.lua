@@ -1,4 +1,4 @@
-local dictionary = require("__flib__.dictionary-lite")
+local dictionary = require("__flib__.dictionary")
 
 local constants = require("constants")
 local research_queue = require("research-queue")
@@ -49,7 +49,7 @@ function cache.build_effect_icons()
   end
 
   for _, prototype in
-    pairs(game.get_filtered_equipment_prototypes({ { filter = "type", type = "active-defense-equipment" } }))
+  pairs(game.get_filtered_equipment_prototypes({ { filter = "type", type = "active-defense-equipment" } }))
   do
     local attack_parameters = prototype.attack_parameters --[[@as AttackParameters]]
     for _, category in pairs(attack_parameters.ammo_categories or { attack_parameters.ammo_type.category }) do
@@ -97,7 +97,7 @@ function cache.build_effect_icons()
     end
   end
 
-  global.effect_icons = icons
+  storage.effect_icons = icons
 end
 
 function cache.build_dictionaries()
@@ -268,16 +268,16 @@ function cache.build_technologies()
   profiler.stop()
   log({ "", "Prerequisite Generation ", profiler })
 
-  global.num_technologies = #technologies
-  global.technology_order = order
-  global.technology_prerequisites = prerequisites
-  global.technology_descendants = descendants
-  global.technology_upgrade_groups = upgrade_groups
+  storage.num_technologies = #technologies
+  storage.technology_order = order
+  storage.technology_prerequisites = prerequisites
+  storage.technology_descendants = descendants
+  storage.technology_upgrade_groups = upgrade_groups
 end
 
 --- @param force LuaForce
 function cache.init_force(force)
-  local force_table = global.forces[force.index]
+  local force_table = storage.forces[force.index]
   --- @type table<ResearchState, table<uint, LuaTechnology>>
   local technology_groups = {}
   for _, research_state in pairs(constants.research_state) do
@@ -290,7 +290,7 @@ function cache.init_force(force)
   for name, technology in pairs(force.technologies) do
     local research_state = research_queue.get_research_state(force_table.queue, technology)
     research_states[name] = research_state
-    technology_groups[research_state][global.technology_order[technology.name]] = technology
+    technology_groups[research_state][storage.technology_order[technology.name]] = technology
   end
 end
 

@@ -176,7 +176,7 @@ function research_queue.instant_research(self, technology)
     technology.researched = true
     return
   end
-  local prerequisites = global.technology_prerequisites[technology.name] or {}
+  local prerequisites = storage.technology_prerequisites[technology.name] or {}
   local technologies = self.force.technologies
   for i = 1, #prerequisites do
     local prerequisite = technologies[prerequisites[i]]
@@ -258,7 +258,7 @@ function research_queue.push(self, technology, level)
   if research_state == constants.research_state.not_available then
     -- Add all prerequisites to research this technology ASAP
     local technologies = self.force.technologies
-    local technology_prerequisites = global.technology_prerequisites[technology.name] or {}
+    local technology_prerequisites = storage.technology_prerequisites[technology.name] or {}
     for i = 1, #technology_prerequisites do
       local prerequisite_name = technology_prerequisites[i]
       local prerequisite = technologies[prerequisite_name]
@@ -267,8 +267,8 @@ function research_queue.push(self, technology, level)
         return { "message.urq-has-disabled-prerequisites" }
       end
       if
-        not research_queue.contains(self, prerequisite, true)
-        and prerequisite_research_state ~= constants.research_state.researched
+          not research_queue.contains(self, prerequisite, true)
+          and prerequisite_research_state ~= constants.research_state.researched
       then
         add_technology(to_research, prerequisite)
       end
@@ -312,7 +312,7 @@ function research_queue.push_front(self, technology, level)
   local to_move = {}
   -- Add all prerequisites to research this technology ASAP
   local technologies = self.force.technologies
-  local technology_prerequisites = global.technology_prerequisites[technology.name] or {}
+  local technology_prerequisites = storage.technology_prerequisites[technology.name] or {}
   for i = 1, #technology_prerequisites do
     local prerequisite_name = technology_prerequisites[i]
     local prerequisite = technologies[prerequisite_name]
@@ -389,7 +389,7 @@ function research_queue.remove(self, technology, level, skip_validation)
   end
   -- Remove descendants
   local technologies = self.force.technologies
-  local descendants = global.technology_descendants[technology.name]
+  local descendants = storage.technology_descendants[technology.name]
   local is_multilevel = flib_technology.is_multilevel(technology)
   if descendants then
     for _, descendant_name in pairs(descendants) do
@@ -454,7 +454,7 @@ function research_queue.unresearch(self, technology)
 
   --- @param technology LuaTechnology
   local function propagate(technology)
-    local descendants = global.technology_descendants[technology.name] or {}
+    local descendants = storage.technology_descendants[technology.name] or {}
     for i = 1, #descendants do
       local descendant_name = descendants[i]
       if research_states[descendant_name] == constants.research_state.researched then
@@ -500,7 +500,7 @@ function research_queue.update_durations(self)
       local technology, level = node.technology, node.level
       local progress = flib_technology.get_research_progress(technology, level)
       duration = duration
-        + (1 - progress)
+          + (1 - progress)
           * flib_technology.get_research_unit_count(technology, node.level)
           * technology.research_unit_energy
           / speed
@@ -513,7 +513,7 @@ end
 --- @param self ResearchQueue
 function research_queue.update_all_research_states(self)
   for _, technology in pairs(self.force.technologies) do
-    local order = global.technology_order[technology.name]
+    local order = storage.technology_order[technology.name]
     local groups = self.force_table.technology_groups
     local research_states = self.force_table.research_states
     local previous_state = research_states[technology.name]

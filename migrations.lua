@@ -39,12 +39,12 @@ function migrations.init_force(force)
     technology_groups = {},
   }
   force_table.queue = research_queue.new(force, force_table)
-  global.forces[force.index] = force_table
+  storage.forces[force.index] = force_table
 end
 
 --- @param force LuaForce
 function migrations.migrate_force(force)
-  local force_table = global.forces[force.index]
+  local force_table = storage.forces[force.index]
   if not force_table then
     return
   end

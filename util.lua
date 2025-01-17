@@ -59,7 +59,7 @@ end
 --- @param force LuaForce
 function util.schedule_force_update(force)
   -- FIXME: Tick paused
-  global.update_force_guis[force.index] = true
+  storage.update_force_guis[force.index] = true
 end
 
 --- @param technology LuaTechnology

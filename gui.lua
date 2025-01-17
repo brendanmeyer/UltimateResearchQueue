@@ -1,6 +1,6 @@
-local dictionary = require("__flib__.dictionary-lite")
+local dictionary = require("__flib__.dictionary")
 local format = require("__flib__.format")
-local flib_gui = require("__flib__.gui-lite")
+local flib_gui = require("__flib__.gui")
 local math = require("__flib__.math")
 local table = require("__flib__.table")
 local flib_technology = require("__flib__.technology")
@@ -65,14 +65,14 @@ end
 
 --- @param player_index uint
 function gui.destroy(player_index)
-  local self = global.guis[player_index]
+  local self = storage.guis[player_index]
   if not self then
     return
   end
   if self.elems.urq_window.valid then
     self.elems.urq_window.destroy()
   end
-  global.guis[player_index] = nil
+  storage.guis[player_index] = nil
 end
 
 --- @param self Gui
@@ -95,7 +95,7 @@ function gui.filter_tech_list(self)
     if technology.upgrade and research_state ~= constants.research_state.conditionally_available then
       upgrade_matched = gui_util.check_upgrade_group(
         technology_name,
-        global.technology_upgrade_groups[flib_technology.get_base_name(technology)],
+        storage.technology_upgrade_groups[flib_technology.get_base_name(technology)],
         research_states
       )
     end
@@ -111,7 +111,7 @@ end
 --- @param player_index uint
 --- @return Gui?
 function gui.get(player_index)
-  local self = global.guis[player_index]
+  local self = storage.guis[player_index]
   if not self or not self.elems.urq_window.valid or not self.player.valid then
     if self and self.player.valid then
       self.player.print({ "message.urq-recreated-gui" })
@@ -148,7 +148,7 @@ function gui.new(player)
 
   -- Build techs list
   local show_controls = player.mod_settings["urq-show-control-hints"].value --[[@as boolean]]
-  local force_table = global.forces[player.force.index]
+  local force_table = storage.forces[player.force.index]
   for _, technology in pairs(player.force.technologies) do
     gui_util.technology_slot(
       elems.techs_table,
@@ -178,7 +178,7 @@ function gui.new(player)
       selected = nil,
     },
   }
-  global.guis[player.index] = self
+  storage.guis[player.index] = self
 
   gui.update(self)
 
@@ -200,8 +200,8 @@ end
 function gui.on_tech_slot_click(self, e)
   local tags = e.element.tags
   local tech_name, level =
-    tags.tech_name, --[[@as string]]
-    tags.level --[[@as uint]]
+      tags.tech_name, --[[@as string]]
+      tags.level --[[@as uint]]
   local technology = self.force.technologies[tech_name]
   if e.button == defines.mouse_button_type.right then
     research_queue.remove(self.force_table.queue, technology, level)
@@ -474,7 +474,7 @@ function gui.update_queue(self)
   self.elems.queue_trash_button.enabled = queue.len > 0
 
   self.elems.queue_population_label.caption =
-    { "gui.urq-queue-population", self.force_table.queue.len, constants.queue_limit }
+  { "gui.urq-queue-population", self.force_table.queue.len, constants.queue_limit }
 
   local selected = self.state.selected or {}
   local research_states = self.force_table.research_states
@@ -527,10 +527,10 @@ function gui.update_search_query(self)
   self.state.search_query = self.elems.search_textfield.text
 
   if game.tick_paused or #self.state.search_query == 0 then
-    global.filter_tech_list[self.player.index] = nil
+    storage.filter_tech_list[self.player.index] = nil
     gui.filter_tech_list(self)
   else
-    global.filter_tech_list[self.player.index] = game.tick + 30
+    storage.filter_tech_list[self.player.index] = game.tick + 30
   end
 end
 
@@ -595,7 +595,7 @@ function gui.update_tech_info(self)
   })
   local research_unit_count = flib_technology.get_research_unit_count(technology, level)
   self.elems.tech_info_ingredients_count_label.caption = "[img=quantity-multiplier] "
-    .. format.number(research_unit_count, research_unit_count > 9999)
+      .. format.number(research_unit_count, research_unit_count > 9999)
 
   -- Effects
   local effects_table = self.elems.tech_info_effects_table
@@ -628,7 +628,7 @@ function gui.update_tech_info(self)
     self,
     self.elems.tech_info_descendants_table,
     gui.on_tech_slot_click,
-    table.map(global.technology_descendants[technology.name] or {}, function(descendant_name)
+    table.map(storage.technology_descendants[technology.name] or {}, function(descendant_name)
       return technologies[descendant_name]
     end)
   )
@@ -639,7 +639,7 @@ function gui.update_tech_info(self)
     self,
     self.elems.tech_info_upgrade_group_table,
     gui.on_tech_slot_click,
-    table.map(global.technology_upgrade_groups[flib_technology.get_base_name(technology)] or {}, function(prototype)
+    table.map(storage.technology_upgrade_groups[flib_technology.get_base_name(technology)] or {}, function(prototype)
       return technologies[prototype.name]
     end)
   )
@@ -703,7 +703,7 @@ function gui.update_tech_list(self)
   local research_states = self.force_table.research_states
   local i = 0
   for _, group in pairs(self.force_table.technology_groups) do
-    for j = 1, global.num_technologies do
+    for j = 1, storage.num_technologies do
       --- @cast j uint
       local technology = group[j]
       if not technology then
@@ -788,7 +788,7 @@ gui.base_template = {
             type = "frame",
             style = "subheader_frame",
             style_mods = { horizontally_stretchable = true },
-            { type = "label", style = "subheader_caption_label", caption = { "gui-technology-queue.title" } },
+            { type = "label",        style = "subheader_caption_label", caption = { "gui-technology-queue.title" } },
             { type = "empty-widget", style = "flib_horizontal_pusher" },
             {
               type = "label",
