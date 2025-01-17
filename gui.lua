@@ -1,13 +1,14 @@
-local dictionary = require("__flib__/dictionary-lite")
-local format = require("__flib__/format")
-local flib_gui = require("__flib__/gui-lite")
-local math = require("__flib__/math")
-local table = require("__flib__/table")
+local dictionary = require("__flib__.dictionary-lite")
+local format = require("__flib__.format")
+local flib_gui = require("__flib__.gui-lite")
+local math = require("__flib__.math")
+local table = require("__flib__.table")
+local flib_technology = require("__flib__.technology")
 
-local constants = require("__UltimateResearchQueue__/constants")
-local gui_util = require("__UltimateResearchQueue__/gui-util")
-local research_queue = require("__UltimateResearchQueue__/research-queue")
-local util = require("__UltimateResearchQueue__/util")
+local constants = require("constants")
+local gui_util = require("gui-util")
+local research_queue = require("research-queue")
+local util = require("util")
 
 --- @class GuiElems
 --- @field urq_window LuaGuiElement
@@ -29,6 +30,7 @@ local util = require("__UltimateResearchQueue__/util")
 --- @field tech_info_main_slot_frame LuaGuiElement
 --- @field tech_info_description_label LuaGuiElement
 --- @field tech_info_ingredients_table LuaGuiElement
+--- @field tech_info_ingredients_count_label LuaGuiElement
 --- @field tech_info_ingredients_time_label LuaGuiElement
 --- @field tech_info_effects_table LuaGuiElement
 --- @field tech_info_prerequisites_table LuaGuiElement
@@ -93,7 +95,7 @@ function gui.filter_tech_list(self)
     if technology.upgrade and research_state ~= constants.research_state.conditionally_available then
       upgrade_matched = gui_util.check_upgrade_group(
         technology_name,
-        global.technology_upgrade_groups[util.get_base_name(technology)],
+        global.technology_upgrade_groups[flib_technology.get_base_name(technology)],
         research_states
       )
     end
@@ -147,19 +149,16 @@ function gui.new(player)
   -- Build techs list
   local show_controls = player.mod_settings["urq-show-control-hints"].value --[[@as boolean]]
   local force_table = global.forces[player.force.index]
-  local buttons = {}
   for _, technology in pairs(player.force.technologies) do
-    local button_template = gui_util.technology_slot(
+    gui_util.technology_slot(
+      elems.techs_table,
       technology,
       technology.prototype.level,
       force_table.research_states[technology.name],
-      show_controls
+      show_controls,
+      gui.on_tech_slot_click
     )
-    button_template.handler = { [defines.events.on_gui_click] = gui.on_tech_slot_click }
-
-    buttons[#buttons + 1] = button_template
   end
-  flib_gui.add(elems.techs_table, buttons)
 
   local force = player.force --[[@as LuaForce]]
   --- @class Gui
@@ -200,7 +199,9 @@ end
 --- @param e EventData.on_gui_click
 function gui.on_tech_slot_click(self, e)
   local tags = e.element.tags
-  local tech_name, level = tags.tech_name --[[@as string]], tags.level --[[@as uint]]
+  local tech_name, level =
+    tags.tech_name, --[[@as string]]
+    tags.level --[[@as uint]]
   local technology = self.force.technologies[tech_name]
   if e.button == defines.mouse_button_type.right then
     research_queue.remove(self.force_table.queue, technology, level)
@@ -259,12 +260,19 @@ function gui.open_in_recipe_book(self, e)
     return
   end
   local class, name = string.match(e.element.sprite, "(.*)/(.*)")
+  if class ~= "item" and class ~= "recipe" then
+    return
+  end
   remote.call("RecipeBook", "open_page", self.player.index, class, name)
 end
 
 --- @param self Gui
 --- @param technology LuaTechnology
+--- @param level uint?
 function gui.select_technology(self, technology, level)
+  if not level then
+    level = technology.level
+  end
   local former_selected = self.state.selected
   if former_selected and former_selected.technology == technology and former_selected.level == level then
     return
@@ -279,6 +287,9 @@ end
 --- @param self Gui
 --- @param select_tech string?
 function gui.show(self, select_tech)
+  if select_tech then
+    log("SHOWING " .. select_tech)
+  end
   if self.state.pending_update then
     self.state.pending_update = false
     gui.update(self)
@@ -394,8 +405,8 @@ function gui.update_durations_and_progress(self)
   local node = queue.head
   while node do
     local technology, level = node.technology, node.level
-    local progress = math.floored(util.get_research_progress(technology, level), 0.01)
-    local queue_button = queue_table[util.get_queue_key(technology, level)]
+    local progress = math.floored(flib_technology.get_research_progress(technology, level), 0.01)
+    local queue_button = queue_table[flib_technology.get_leveled_name(technology, level)]
     if queue_button then
       queue_button.duration_label.caption = node.duration
       queue_button.progressbar.value = progress
@@ -476,7 +487,7 @@ function gui.update_queue(self)
   while node do
     i = i + 1
     local technology, level = node.technology, node.level
-    local name = util.get_queue_key(technology, level)
+    local name = flib_technology.get_leveled_name(technology, level)
     local button = queue_table[name]
     local is_selected = selected.technology == technology and selected.level == level
     if button then
@@ -490,12 +501,17 @@ function gui.update_queue(self)
         is_selected
       )
     else
-      local button_template =
-        gui_util.technology_slot(technology, level, research_states[technology.name], show_controls, is_selected)
-      button_template.handler = { [defines.events.on_gui_click] = gui.on_tech_slot_click }
-      button_template.index = i
-      button_template.name = util.get_queue_key(technology, level)
-      flib_gui.add(queue_table, button_template)
+      gui_util.technology_slot(
+        queue_table,
+        technology,
+        level,
+        research_states[technology.name],
+        show_controls,
+        gui.on_tech_slot_click,
+        is_selected,
+        flib_technology.get_leveled_name(technology, level),
+        i
+      )
     end
     node = node.next
   end
@@ -537,17 +553,21 @@ function gui.update_tech_info(self)
   local main_slot_frame = self.elems.tech_info_main_slot_frame
   main_slot_frame.clear() -- The best thing to do is clear it, otherwise we'd need to diff all the sub-elements
   if technology then
-    local button_template =
-      gui_util.technology_slot(technology, level, self.force_table.research_states[technology.name], show_controls)
-    button_template.handler = { [defines.events.on_gui_click] = gui.on_tech_slot_click }
-    button_template[5].visible = false
-    button_template[6].visible = false
-    flib_gui.add(main_slot_frame, button_template)
+    local button = gui_util.technology_slot(
+      main_slot_frame,
+      technology,
+      level,
+      self.force_table.research_states[technology.name],
+      show_controls,
+      gui.on_tech_slot_click
+    )
+    button.duration_label.visible = false
+    button.progressbar.visible = false
   end
 
   -- Name and description
   local caption = technology.localised_name
-  if util.is_multilevel(technology) then
+  if flib_technology.is_multilevel(technology) then
     caption = { "", caption, " ", level }
   end
   self.elems.tech_info_name_label.caption = caption
@@ -557,18 +577,13 @@ function gui.update_tech_info(self)
   local ingredients_table = self.elems.tech_info_ingredients_table
   ingredients_table.clear()
   local ingredients_children = table.map(technology.research_unit_ingredients, function(ingredient)
-    local prototype = game.item_prototypes[ingredient.name]
     return {
       type = "sprite-button",
       style = "transparent_slot",
       sprite = "item/" .. ingredient.name,
       number = ingredient.amount,
-      tooltip = {
-        "",
-        { "gui.urq-tooltip-title", { "?", prototype.localised_name, prototype.name } },
-        { "?", { "", "\n", prototype.localised_description }, "" },
-        show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" } or nil,
-      },
+      elem_tooltip = { type = "item", name = ingredient.name },
+      tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
       handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
     }
   end)
@@ -576,9 +591,9 @@ function gui.update_tech_info(self)
   flib_gui.add(ingredients_table, {
     type = "label",
     style = "count_label",
-    caption = "[img=quantity-time] " .. format.number(technology.research_unit_energy / 60, true),
+    caption = "[img=quantity-time] " .. format.number(math.round(technology.research_unit_energy / 60, 0.01), true),
   })
-  local research_unit_count = util.get_research_unit_count(technology, level)
+  local research_unit_count = flib_technology.get_research_unit_count(technology, level)
   self.elems.tech_info_ingredients_count_label.caption = "[img=quantity-multiplier] "
     .. format.number(research_unit_count, research_unit_count > 9999)
 
@@ -624,7 +639,7 @@ function gui.update_tech_info(self)
     self,
     self.elems.tech_info_upgrade_group_table,
     gui.on_tech_slot_click,
-    table.map(global.technology_upgrade_groups[util.get_base_name(technology)] or {}, function(prototype)
+    table.map(global.technology_upgrade_groups[flib_technology.get_base_name(technology)] or {}, function(prototype)
       return technologies[prototype.name]
     end)
   )
@@ -642,7 +657,7 @@ function gui.update_tech_info_footer(self, progress_only)
   end
   local technology, level = selected.technology, selected.level
   local research_state = self.force_table.research_states[technology.name]
-  local selected_name = util.get_queue_key(technology, level)
+  local selected_name = flib_technology.get_leveled_name(technology, level)
 
   local is_disabled = research_state == constants.research_state.disabled
   local is_researched = research_state == constants.research_state.researched
@@ -658,7 +673,7 @@ function gui.update_tech_info_footer(self, progress_only)
   end
 
   local in_queue = research_queue.contains(self.force_table.queue, technology, level)
-  local progress = util.get_research_progress(technology, level)
+  local progress = flib_technology.get_research_progress(technology, level)
 
   local progressbar = elems.tech_info_footer_progressbar
   progressbar.visible = progress > 0
@@ -695,7 +710,7 @@ function gui.update_tech_list(self)
         goto continue
       end
       local level = technology.prototype.level
-      if util.is_multilevel(technology) then
+      if flib_technology.is_multilevel(technology) then
         level = math.clamp(
           research_queue.get_highest_level(self.force_table.queue, technology) + 1,
           technology.level,

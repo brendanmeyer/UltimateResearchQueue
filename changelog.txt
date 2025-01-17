@@ -1,7 +1,34 @@
 ---------------------------------------------------------------------------------------------------
-Version: 1.0.10
+Version: 1.1.1
 Date: ????
-  Features:
+  Changes:
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2024-05-10
+  Changes:
+    - The mod now uses built-in tooltips wherever possible. (#11)
+    - Removed research completion notifications as they are now built in to vanilla.
+  Bugfixes:
+    - Fixed a crash when a force is removed during migrations. (#16)
+---------------------------------------------------------------------------------------------------
+Version: 1.0.12
+Date: 2023-04-29
+  Changes:
+    - Made the double-click detection window 20 ticks (up from 12) to match the base game
+  Bugfixes:
+    - Fixed being unable to queue level-0 technologies (#8)
+    - Fixed a crash when alt+clicking certain technology effects to open in Recipe Book (#10)
+---------------------------------------------------------------------------------------------------
+Version: 1.0.11
+Date: 2023-03-26
+  Bugfixes:
+    - Fixed that fractional research unit counts would be displayed with too much precision (#6)
+    - Fixed that lower levels of a multi-level tech would not be moved when queuing to the front
+---------------------------------------------------------------------------------------------------
+Version: 1.0.10
+Date: 2023-03-20
+  Bugfixes:
+    - Fixed that tooltips would not update the cost of technologies (#4)
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.9
 Date: 2023-03-10

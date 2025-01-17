@@ -1,7 +1,7 @@
-local dictionary = require("__flib__/dictionary-lite")
+local dictionary = require("__flib__.dictionary-lite")
 
-local constants = require("__UltimateResearchQueue__/constants")
-local research_queue = require("__UltimateResearchQueue__/research-queue")
+local constants = require("constants")
+local research_queue = require("research-queue")
 
 --- @class Cache
 local cache = {}

@@ -1,10 +1,11 @@
-local flib_gui = require("__flib__/gui-lite")
-local format = require("__flib__/format")
-local math = require("__flib__/math")
-local table = require("__flib__/table")
+local flib_format = require("__flib__.format")
+local flib_math = require("__flib__.math")
+local flib_table = require("__flib__.table")
+local flib_gui_templates = require("__flib__.gui-templates")
+local flib_technology = require("__flib__.technology")
 
-local constants = require("__UltimateResearchQueue__/constants")
-local util = require("__UltimateResearchQueue__/util")
+local constants = require("constants")
+local util = require("util")
 
 local gui_util = {}
 
@@ -34,8 +35,8 @@ end
 --- @param effect TechnologyModifier
 --- @param show_controls boolean
 function gui_util.effect_button(effect, show_controls)
-  --- @type LocalisedString?, LocalisedString?
-  local sprite, tooltip
+  --- @type LocalisedString?, LocalisedString?, ElemID?
+  local sprite, tooltip, elem_tooltip
 
   if effect.type == "ammo-damage" then
     sprite = global.effect_icons[effect.ammo_category]
@@ -43,16 +44,9 @@ function gui_util.effect_button(effect, show_controls)
       { "modifier-description." .. effect.ammo_category .. "-damage-bonus", tostring(effect.modifier * 100) .. "%" }
   elseif effect.type == "give-item" then
     sprite = "item/" .. effect.item
-    tooltip = {
-      "gui.urq-tooltip-title",
-      {
-        "",
-        effect.count .. " × ",
-        game.item_prototypes[effect.item].localised_name,
-      },
-    }
+    elem_tooltip = { type = "item", name = effect.item }
     if show_controls and script.active_mods["RecipeBook"] then
-      tooltip[#tooltip + 1] = { "gui.urq-tooltip-view-in-recipe-book" }
+      tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
   elseif effect.type == "gun-speed" then
     sprite = global.effect_icons[effect.ammo_category]
@@ -70,24 +64,9 @@ function gui_util.effect_button(effect, show_controls)
     }
   elseif effect.type == "unlock-recipe" then
     sprite = "recipe/" .. effect.recipe
-
-    local prototype = game.recipe_prototypes[effect.recipe]
-    tooltip = {
-      "",
-      {
-        "gui.urq-tooltip-title",
-        {
-          "",
-          prototype.localised_name,
-          " (",
-          { "description.recipe" },
-          ")",
-        },
-      },
-      { "?", { "", "\n", prototype.localised_description }, "" },
-    }
+    elem_tooltip = { type = "recipe", name = effect.recipe }
     if show_controls and script.active_mods["RecipeBook"] then
-      tooltip[#tooltip + 1] = { "gui.urq-tooltip-view-in-recipe-book" }
+      tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
   else
     sprite = global.effect_icons[effect.type] or ("utility/" .. string.gsub(effect.type, "%-", "_") .. "_modifier_icon")
@@ -97,11 +76,11 @@ function gui_util.effect_button(effect, show_controls)
     local format = constants.effect_display_type[effect.type]
     if format then
       if format == "float" then
-        formatted = tostring(math.round(modifier, 0.01))
+        formatted = tostring(flib_math.round(modifier, 0.01))
       elseif format == "float_percent" then
-        formatted = { "format-percent", tostring(math.round(modifier * 100, 0.01)) }
+        formatted = { "format-percent", tostring(flib_math.round(modifier * 100, 0.01)) }
       elseif format == "signed" or format == "unsigned" then
-        formatted = tostring(math.round(modifier))
+        formatted = tostring(flib_math.round(modifier))
       elseif format == "ticks" then
         formatted = util.format_time_short(effect.modifier)
       end
@@ -123,6 +102,7 @@ function gui_util.effect_button(effect, show_controls)
     sprite = sprite or "utility/nothing_modifier_icon",
     number = effect.count,
     tooltip = tooltip,
+    elem_tooltip = elem_tooltip,
     overlay_elem,
   }
 end
@@ -145,20 +125,23 @@ function gui_util.frame_action_button(name, sprite, tooltip, action)
   }
 end
 
+--- @class TechnologySlotProperties
+--- @field max_level_str string
+--- @field research_state_str string
+--- @field style string
+
 --- @param technology LuaTechnology
 --- @param research_state ResearchState
---- @param is_selected boolean?
 --- @return TechnologySlotProperties
-function gui_util.get_technology_slot_properties(technology, research_state, is_selected)
-  local research_state_str = table.find(constants.research_state, research_state)
-  local max_level_str = technology.prototype.max_level == math.max_uint and "[img=infinity]"
+function gui_util.get_technology_slot_properties(technology, research_state)
+  local max_level_str = technology.prototype.max_level == flib_math.max_uint and "[img=infinity]"
     or tostring(technology.prototype.max_level)
-  local style = "urq_technology_slot_"
-    .. research_state_str
-    .. ((technology.upgrade or util.is_multilevel(technology) or technology.prototype.level > 1) and "_leveled" or "")
-    .. (is_selected and "_selected" or "")
+  local research_state_str = flib_table.find(flib_technology.research_state, research_state)
+  local style = "flib_technology_slot_" .. research_state_str
+  if technology.upgrade or flib_technology.is_multilevel(technology) or technology.prototype.level > 1 then
+    style = style .. "_multilevel"
+  end
 
-  --- @class TechnologySlotProperties
   return { max_level_str = max_level_str, research_state_str = research_state_str, style = style }
 end
 
@@ -166,7 +149,7 @@ end
 function gui_util.is_double_click(elem)
   local tags = elem.tags
   local last_click_tick = tags.last_click_tick or 0
-  local is_double_click = game.ticks_played - last_click_tick < 12
+  local is_double_click = game.ticks_played - last_click_tick < 20
   if is_double_click then
     tags.last_click_tick = nil
   else
@@ -232,41 +215,78 @@ function gui_util.tech_info_sublist(caption, table_name)
   }
 end
 
+--- @param parent LuaGuiElement
 --- @param technology LuaTechnology
 --- @param level uint
 --- @param research_state ResearchState
 --- @param show_controls boolean
+--- @param on_click GuiElemHandler
 --- @param is_selected boolean?
---- @return GuiElemDef
-function gui_util.technology_slot(technology, level, research_state, show_controls, is_selected)
-  local properties = gui_util.get_technology_slot_properties(technology, research_state, is_selected)
-  local progress = util.get_research_progress(technology, level)
-
-  local ingredients = {}
-  local ingredients_len = 0
-  for i, ingredient in pairs(technology.research_unit_ingredients) do
-    ingredients_len = i
-    ingredients[#ingredients + 1] = {
-      type = "sprite",
-      style = "urq_technology_slot_ingredient",
-      sprite = ingredient.type .. "/" .. ingredient.name,
-      ignored_by_interaction = true,
+--- @param name string?
+--- @param index uint?
+--- @return LuaGuiElement
+function gui_util.technology_slot(
+  parent,
+  technology,
+  level,
+  research_state,
+  show_controls,
+  on_click,
+  is_selected,
+  name,
+  index
+)
+  local slot = flib_gui_templates.technology_slot(parent, technology, level, research_state, on_click, {
+    cost = flib_technology.get_research_unit_count(technology, level),
+    level = level,
+    research_state = research_state,
+    tech_name = technology.name,
+  }, index)
+  slot.name = name or technology.name
+  slot.add({
+    type = "label",
+    name = "duration_label",
+    style = "urq_technology_slot_duration_label",
+    ignored_by_interaction = true,
+  })
+  if is_selected then
+    slot.toggled = is_selected
+  end
+  if show_controls then
+    --- @type LocalisedString
+    local tooltip = {
+      "",
+      { "gui.urq-tooltip-view-details" },
+      { "gui.urq-tooltip-add-to-queue" },
+      { "gui.urq-tooltip-add-to-queue-front" },
+      { "gui.urq-tooltip-remove-from-queue" },
     }
+    if script.active_mods["RecipeBook"] then
+      tooltip[#tooltip + 1] = { "", "\n", { "gui.urq-tooltip-view-in-recipe-book" } }
+    end
+    slot.tooltip = tooltip
   end
 
-  local ingredients_spacing = math.clamp((68 - 16) / (ingredients_len - 1) - 16, -15, -5)
+  if not flib_technology.is_multilevel(technology) then
+    return slot
+  end
+
+  -- We can't use built-in tooltips for multi-level technologies.
+
+  slot.elem_tooltip = nil
 
   --- @type LocalisedString
   local tooltip = { "" }
   -- Title
   local name = technology.localised_name
-  if util.is_multilevel(technology) then
+  if flib_technology.is_multilevel(technology) then
     name = { "", name, " ", level }
   end
   tooltip[#tooltip + 1] = { "gui.urq-tooltip-title", name }
   -- Description
   tooltip[#tooltip + 1] = { "?", { "", "\n", technology.localised_description }, "" }
   -- Cost
+  local cost = flib_technology.get_research_unit_count(technology, level)
   local ingredients_tt = ""
   for _, ingredient in pairs(technology.research_unit_ingredients) do
     ingredients_tt = ingredients_tt .. "[img=item/" .. ingredient.name .. "]" .. ingredient.amount
@@ -276,73 +296,17 @@ function gui_util.technology_slot(technology, level, research_state, show_contro
     "\n[",
     ingredients_tt,
     " [img=quantity-time][font=default-semibold]",
-    format.number(technology.research_unit_energy / 60, true),
+    flib_format.number(technology.research_unit_energy / 60, true),
     "[/font]] × ",
-    format.number(util.get_research_unit_count(technology, level)),
+    flib_format.number(cost),
   }
-  -- Controls
-  if show_controls then
-    tooltip[#tooltip + 1] = { "gui.urq-tooltip-view-details" }
-    tooltip[#tooltip + 1] = { "gui.urq-tooltip-add-to-queue" }
-    tooltip[#tooltip + 1] = { "gui.urq-tooltip-add-to-queue-front" }
-    tooltip[#tooltip + 1] = { "gui.urq-tooltip-remove-from-queue" }
-    if script.active_mods["RecipeBook"] then
-      tooltip[#tooltip + 1] = { "gui.urq-tooltip-view-in-recipe-book" }
-    end
+  local existing = slot.tooltip
+  if existing then
+    tooltip[#tooltip + 1] = { "", "\n", existing }
   end
+  slot.tooltip = tooltip
 
-  return {
-    type = "sprite-button",
-    name = technology.name,
-    style = properties.style,
-    tooltip = tooltip,
-    tags = { research_state = research_state, tech_name = technology.name, level = level },
-    {
-      type = "flow",
-      style = "urq_technology_slot_sprite_flow",
-      ignored_by_interaction = true,
-      {
-        type = "sprite",
-        style = "urq_technology_slot_sprite",
-        sprite = "technology/" .. technology.name,
-      },
-    },
-    (technology.upgrade or util.is_multilevel(technology) or technology.prototype.level > 1) and {
-      type = "label",
-      name = "level_label",
-      style = "urq_technology_slot_level_label_" .. properties.research_state_str,
-      caption = level,
-      ignored_by_interaction = true,
-    } or {},
-    util.is_multilevel(technology) and {
-      type = "label",
-      name = "level_range_label",
-      style = "urq_technology_slot_level_range_label_" .. properties.research_state_str,
-      caption = technology.prototype.level .. " - " .. properties.max_level_str,
-      ignored_by_interaction = true,
-    } or {},
-    {
-      type = "flow",
-      style = "urq_technology_slot_ingredients_flow",
-      style_mods = { horizontal_spacing = ingredients_spacing },
-      children = ingredients,
-      ignored_by_interaction = true,
-    },
-    {
-      type = "label",
-      name = "duration_label",
-      style = "urq_technology_slot_duration_label",
-      ignored_by_interaction = true,
-    },
-    {
-      type = "progressbar",
-      name = "progressbar",
-      style = "urq_technology_slot_progressbar",
-      value = progress,
-      visible = progress > 0,
-      ignored_by_interaction = true,
-    },
-  }
+  return slot
 end
 
 --- @param elem LuaGuiElement
@@ -368,25 +332,24 @@ function gui_util.update_technology_info_sublist(self, elem_table, handler, tech
   local show_controls = self.player.mod_settings["urq-show-control-hints"].value --[[@as boolean]]
   local show_disabled = self.player.mod_settings["urq-show-disabled-techs"].value --[[@as boolean]]
   elem_table.clear()
-  local group_buttons = {}
+  local added = false
   for _, technology in pairs(technologies) do
     local research_state = research_states[technology.name]
     if util.should_show(technology, research_state, show_disabled) then
-      local button_template = gui_util.technology_slot(
+      added = true
+      gui_util.technology_slot(
+        elem_table,
         technology,
         technology.level,
         research_state,
         show_controls,
+        handler,
         selected.technology == technology and selected.level == technology.level
       )
-      button_template.handler = handler
-
-      group_buttons[#group_buttons + 1] = button_template
     end
   end
-  if #group_buttons > 0 then
+  if added then
     elem_table.parent.parent.visible = true
-    flib_gui.add(elem_table, group_buttons)
   else
     elem_table.parent.parent.visible = false
   end
@@ -399,38 +362,52 @@ end
 --- @param in_queue boolean
 --- @param is_selected boolean?
 function gui_util.update_technology_slot(button, technology, level, research_state, in_queue, is_selected)
-  local properties = gui_util.get_technology_slot_properties(technology, research_state, is_selected)
+  local properties = gui_util.get_technology_slot_properties(technology, research_state)
   local tags = button.tags
   button.style = properties.style
+  button.toggled = is_selected or false
   if tags.research_state ~= research_state then
     if research_state == constants.research_state.researched then
       button.progressbar.visible = false
       button.progressbar.value = 0
     end
-    if technology.upgrade or util.is_multilevel(technology) or technology.prototype.level > 1 then
-      button.level_label.style = "urq_technology_slot_level_label_" .. properties.research_state_str
+    if technology.upgrade or flib_technology.is_multilevel(technology) or technology.prototype.level > 1 then
+      button.level_label.style = "flib_technology_slot_level_label_" .. properties.research_state_str
     end
-    if util.is_multilevel(technology) then
-      button.level_range_label.style = "urq_technology_slot_level_range_label_" .. properties.research_state_str
+    if flib_technology.is_multilevel(technology) then
+      button.level_range_label.style = "flib_technology_slot_level_range_label_" .. properties.research_state_str
     end
     tags.research_state = research_state --[[@as AnyBasic]]
     button.tags = tags
   end
-  if util.is_multilevel(technology) then
+  --- @type LocalisedString?
+  local tooltip
+  if flib_technology.is_multilevel(technology) then
     if tags.level ~= level then
       tags.level = level
       button.tags = tags
-      local tooltip = button.tooltip
+      tooltip = button.tooltip
       tooltip[2][2][4] = level --- @diagnostic disable-line
-      tooltip[4][7] = format.number(util.get_research_unit_count(technology, level)) --- @diagnostic disable-line
-      button.tooltip = tooltip
     end
     local level_label = button.level_label
     if level_label then
       level_label.caption = tostring(level)
     end
+    local cost = flib_technology.get_research_unit_count(technology, level)
+    if tags.cost ~= cost then
+      tags.cost = cost
+      if not tooltip then
+        tooltip = button.tooltip
+      end
+      tooltip[4][7] = flib_format.number(cost) --- @diagnostic disable-line
+    end
+  end
+  if tooltip then
+    button.tooltip = tooltip
   end
   button.duration_label.visible = in_queue
+
+  button.tags = tags
 end
 
 return gui_util

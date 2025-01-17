@@ -1,6 +1,6 @@
-local math = require("__flib__/math")
+local math = require("__flib__.math")
 
-local constants = require("__UltimateResearchQueue__/constants")
+local constants = require("constants")
 
 local util = {}
 
@@ -47,54 +47,6 @@ function util.format_time_short(ticks)
   return result
 end
 
---- @param technology LuaTechnology|LuaTechnologyPrototype
---- @return string
-function util.get_base_name(technology)
-  local result = string.gsub(technology.name, "%-%d*$", "")
-  return result
-end
-
---- @param technology LuaTechnology
---- @param level uint
---- @return string
-function util.get_queue_key(technology, level)
-  if util.is_multilevel(technology) then
-    return util.get_base_name(technology) .. "-" .. level
-  else
-    return technology.name
-  end
-end
-
---- @param technology LuaTechnology
---- @param level uint
---- @return double
-function util.get_research_progress(technology, level)
-  local force = technology.force
-  local current_research = force.current_research
-  if current_research and current_research.name == technology.name then
-    if not util.is_multilevel(technology) or technology.level == level then
-      return force.research_progress
-    else
-      return 0
-    end
-  else
-    return force.get_saved_technology_progress(technology) or 0
-  end
-end
-
---- @param technology LuaTechnology
---- @param level uint?
---- @return double
-function util.get_research_unit_count(technology, level)
-  local formula = technology.research_unit_count_formula
-  if formula then
-    local level = level or technology.level
-    return game.evaluate_expression(formula, { l = level, L = level })
-  else
-    return technology.research_unit_count --[[@as double]]
-  end
-end
-
 --- @param player LuaPlayer
 function util.is_cheating(player)
   local cheat_mode = player.cheat_mode
@@ -102,14 +54,6 @@ function util.is_cheating(player)
     cheat_mode = false
   end
   return cheat_mode or player.controller_type == defines.controllers.editor
-end
-
---- @param technology LuaTechnology|LuaTechnologyPrototype
-function util.is_multilevel(technology)
-  if technology.object_name == "LuaTechnology" then
-    technology = technology.prototype
-  end
-  return technology.level ~= technology.max_level
 end
 
 --- @param force LuaForce

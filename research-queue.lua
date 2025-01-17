@@ -1,8 +1,9 @@
-local format = require("__flib__/format")
-local math = require("__flib__/math")
+local format = require("__flib__.format")
+local math = require("__flib__.math")
+local flib_technology = require("__flib__.technology")
 
-local constants = require("__UltimateResearchQueue__/constants")
-local util = require("__UltimateResearchQueue__/util")
+local constants = require("constants")
+local util = require("util")
 
 --- @class ResearchQueueNode
 --- @field technology LuaTechnology
@@ -14,6 +15,16 @@ local util = require("__UltimateResearchQueue__/util")
 --- @class TechnologyAndLevel
 --- @field technology LuaTechnology
 --- @field level uint
+
+--- @class ResearchQueue
+--- @field force LuaForce
+--- @field force_table ForceTable
+--- @field head ResearchQueueNode?
+--- @field len uint
+--- @field lookup table<string, ResearchQueueNode>
+--- @field paused boolean
+--- @field requeue_multilevel boolean
+--- @field updating_active_research boolean
 
 --- @class ResearchQueueMod
 local research_queue = {}
@@ -30,11 +41,11 @@ end
 --- @param level boolean|uint?
 --- @return boolean
 function research_queue.contains(self, technology, level)
-  if not util.is_multilevel(technology) then
+  if not flib_technology.is_multilevel(technology) then
     return not not self.lookup[technology.name]
   end
 
-  local base_name = util.get_base_name(technology)
+  local base_name = flib_technology.get_base_name(technology)
   if level and type(level) == "number" then
     -- This level
     return not not self.lookup[base_name .. "-" .. level]
@@ -50,7 +61,7 @@ function research_queue.contains(self, technology, level)
   else
     -- Any level
     for key in pairs(self.lookup) do
-      if string.find(key, base_name) then
+      if string.find(key, base_name, nil, true) then
         return true
       end
     end
@@ -123,7 +134,7 @@ local function push(self, technology, level, index)
   -- Update flag and length
   self.len = self.len + 1
   -- Add to linked list
-  local key = util.get_queue_key(technology, level)
+  local key = flib_technology.get_leveled_name(technology, level)
   --- @type ResearchQueueNode
   local new_node = { technology = technology, level = level, duration = "[img=infinity]", key = key }
   self.lookup[key] = new_node
@@ -198,8 +209,8 @@ end
 --- @param force_table ForceTable
 --- @return ResearchQueue
 function research_queue.new(force, force_table)
-  --- @class ResearchQueue
-  local self = {
+  --- @type ResearchQueue
+  return {
     force = force,
     force_table = force_table,
     --- @type ResearchQueueNode?
@@ -211,7 +222,6 @@ function research_queue.new(force, force_table)
     requeue_multilevel = false,
     updating_active_research = true,
   }
-  return self
 end
 
 --- @param to_research TechnologyAndLevel[]
@@ -221,7 +231,7 @@ end
 local function add_technology(to_research, technology, level, queue)
   local lower = technology.level
   if queue then
-    lower = math.max(research_queue.get_highest_level(queue, technology) + 1, lower)
+    lower = math.clamp(research_queue.get_highest_level(queue, technology) + 1, lower, technology.prototype.max_level) --[[@as uint]]
   end
   for i = lower, level or technology.prototype.max_level do
     --- @cast i uint
@@ -264,13 +274,13 @@ function research_queue.push(self, technology, level)
       end
     end
   end
-  add_technology(to_research, technology, level, self.force_table.queue)
+  add_technology(to_research, technology, level, self)
   -- Check for errors
   local num_to_research = #to_research
   if num_to_research > constants.queue_limit then
     return { "message.urq-too-many-unresearched-prerequisites" }
   else
-    local len = self.force_table.queue.len
+    local len = self.len
     -- It shouldn't ever be greater... right?
     if len >= constants.queue_limit then
       return { "message.urq-queue-is-full" }
@@ -314,13 +324,18 @@ function research_queue.push_front(self, technology, level)
       add_technology(to_research, prerequisite)
     end
   end
-  add_technology(to_research, technology, level, self.force_table.queue)
+  -- Move higher levels of this tech forward
+  if flib_technology.is_multilevel(technology) and research_queue.contains(self, technology, true) then
+    local highest = research_queue.get_highest_level(self, technology)
+    add_technology(to_move, technology, highest)
+  end
+  add_technology(to_research, technology, level, self)
   -- Check for errors
   local num_to_research = #to_research
   if num_to_research > constants.queue_limit then
     return { "message.urq-too-many-unresearched-prerequisites" }
   else
-    local len = self.force_table.queue.len
+    local len = self.len
     -- It shouldn't ever be greater... right?
     if len >= constants.queue_limit then
       return { "message.urq-queue-is-full" }
@@ -345,7 +360,7 @@ end
 --- @param skip_validation boolean?
 --- @return boolean?
 function research_queue.remove(self, technology, level, skip_validation)
-  local key = util.get_queue_key(technology, level)
+  local key = flib_technology.get_leveled_name(technology, level)
   if not self.lookup[key] then
     return
   end
@@ -375,7 +390,7 @@ function research_queue.remove(self, technology, level, skip_validation)
   -- Remove descendants
   local technologies = self.force.technologies
   local descendants = global.technology_descendants[technology.name]
-  local is_multilevel = util.is_multilevel(technology)
+  local is_multilevel = flib_technology.is_multilevel(technology)
   if descendants then
     for _, descendant_name in pairs(descendants) do
       local descendant = technologies[descendant_name]
@@ -410,7 +425,7 @@ function research_queue.requeue_multilevel(self)
     return
   end
   local technology = head.technology
-  if not util.is_multilevel(technology) then
+  if not flib_technology.is_multilevel(technology) then
     return
   end
   local next_level = research_queue.get_highest_level(self, technology) + 1
@@ -462,7 +477,7 @@ function research_queue.update_active_research(self)
       self.updating_active_research = true
       self.force.add_research(head.technology)
       self.updating_active_research = false
-      self.force_table.last_research_progress = util.get_research_progress(head.technology, head.level)
+      self.force_table.last_research_progress = flib_technology.get_research_progress(head.technology, head.level)
     end
   else
     self.updating_active_research = true
@@ -483,10 +498,10 @@ function research_queue.update_durations(self)
       node.duration = "[img=infinity]"
     else
       local technology, level = node.technology, node.level
-      local progress = util.get_research_progress(technology, level)
+      local progress = flib_technology.get_research_progress(technology, level)
       duration = duration
         + (1 - progress)
-          * util.get_research_unit_count(technology, node.level)
+          * flib_technology.get_research_unit_count(technology, node.level)
           * technology.research_unit_energy
           / speed
       node.duration = format.time(duration --[[@as uint]])

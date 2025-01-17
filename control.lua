@@ -1,10 +1,11 @@
-local dictionary = require("__flib__/dictionary-lite")
-local migration = require("__flib__/migration")
+local dictionary = require("__flib__.dictionary-lite")
+local migration = require("__flib__.migration")
+local flib_technology = require("__flib__.technology")
 
-local gui = require("__UltimateResearchQueue__/gui")
-local migrations = require("__UltimateResearchQueue__/migrations")
-local research_queue = require("__UltimateResearchQueue__/research-queue")
-local util = require("__UltimateResearchQueue__/util")
+local gui = require("gui")
+local migrations = require("migrations")
+local research_queue = require("research-queue")
+local util = require("util")
 
 -- Bootstrap
 
@@ -181,7 +182,7 @@ script.on_event(defines.events.on_research_finished, function(e)
   local level = technology.level
   -- For multi-level techs, we want to remove the level that was just finished, not the new level.
   -- If `researched` is true, then this was the last level and it won't have incremented.
-  if util.is_multilevel(technology) and not technology.researched then
+  if flib_technology.is_multilevel(technology) and not technology.researched then
     level = level - 1
   end
   if research_queue.contains(force_table.queue, technology, level) then
@@ -190,12 +191,6 @@ script.on_event(defines.events.on_research_finished, function(e)
   end
 
   util.schedule_force_update(force)
-
-  for _, player in pairs(force.players) do
-    if player.mod_settings["urq-print-completed-message"].value then
-      player.print({ "message.urq-research-completed", technology.name })
-    end
-  end
 end)
 
 script.on_event(defines.events.on_research_reversed, function(e)
@@ -257,7 +252,8 @@ end)
 --- @param current_research LuaTechnology
 local function update_force_durations(force, force_table, current_research)
   local current_progress = force.research_progress
-  local research_time = current_research.research_unit_energy * util.get_research_unit_count(current_research)
+  local research_time = current_research.research_unit_energy
+    * flib_technology.get_research_unit_count(current_research)
 
   local progress_delta = current_progress - force_table.last_research_progress
   local tick_delta = game.tick - force_table.last_research_progress_tick
@@ -276,9 +272,14 @@ end
 script.on_nth_tick(60, function()
   for force_index, force_table in pairs(global.forces) do
     local force = game.forces[force_index]
+    if not force then
+      global.forces[force_index] = nil
+      goto continue
+    end
     local current_research = force.current_research
     if current_research then
       update_force_durations(force, force_table, current_research)
     end
+    ::continue::
   end
 end)
