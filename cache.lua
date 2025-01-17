@@ -8,7 +8,7 @@ local cache = {}
 
 local function first_entity_prototype(type)
   --- LuaCustomTable does not work with next() and is keyed by name, so we must use pairs()
-  for name in pairs(game.get_filtered_entity_prototypes({ { filter = "type", type = type } })) do
+  for name in pairs(prototypes.get_entity_filtered({ { filter = "type", type = type } })) do
     return "entity/" .. name
   end
 end
@@ -26,16 +26,16 @@ function cache.build_effect_icons()
     ["worker-robot-storage"] = first_entity_prototype("logistic-robot"),
   }
 
-  for _, prototype in pairs(game.get_filtered_item_prototypes({ { filter = "type", type = "ammo" } })) do
+  for _, prototype in pairs(prototypes.get_item_filtered({ { filter = "type", type = "ammo" } })) do
     if not prototype.has_flag("hide-from-bonus-gui") then
-      local category = prototype.get_ammo_type().category
+      local category = prototype.ammo_category
       if not icons[category] then
         icons[category] = "item/" .. prototype.name
       end
     end
   end
 
-  for _, prototype in pairs(game.get_filtered_item_prototypes({ { filter = "type", type = "capsule" } })) do
+  for _, prototype in pairs(prototypes.get_item_filtered({ { filter = "type", type = "capsule" } })) do
     if not prototype.has_flag("hide-from-bonus-gui") then
       local attack_parameters = prototype.capsule_action.attack_parameters
       if attack_parameters then
@@ -49,7 +49,7 @@ function cache.build_effect_icons()
   end
 
   for _, prototype in
-  pairs(game.get_filtered_equipment_prototypes({ { filter = "type", type = "active-defense-equipment" } }))
+  pairs(prototypes.get_equipment_filtered({ { filter = "type", type = "active-defense-equipment" } }))
   do
     local attack_parameters = prototype.attack_parameters --[[@as AttackParameters]]
     for _, category in pairs(attack_parameters.ammo_categories or { attack_parameters.ammo_type.category }) do
@@ -60,7 +60,7 @@ function cache.build_effect_icons()
   end
 
   for _, turret_type in pairs({ "electric-turret", "ammo-turret", "artillery-turret", "fluid-turret" }) do
-    for _, prototype in pairs(game.get_filtered_entity_prototypes({ { filter = "type", type = turret_type } })) do
+    for _, prototype in pairs(prototypes.get_entity_filtered({ { filter = "type", type = turret_type } })) do
       local attack_parameters = prototype.attack_parameters
       if attack_parameters then
         for _, category in pairs(attack_parameters.ammo_categories or { attack_parameters.ammo_type.category }) do
@@ -72,7 +72,7 @@ function cache.build_effect_icons()
     end
   end
 
-  for _, prototype in pairs(game.get_filtered_entity_prototypes({ { filter = "type", type = "combat-robot" } })) do
+  for _, prototype in pairs(prototypes.get_entity_filtered({ { filter = "type", type = "combat-robot" } })) do
     local attack_parameters = prototype.attack_parameters --[[@as AttackParameters]]
     for _, category in pairs(attack_parameters.ammo_categories or { attack_parameters.ammo_type.category }) do
       if not icons[category] then
@@ -81,14 +81,14 @@ function cache.build_effect_icons()
     end
   end
 
-  for _, prototype in pairs(game.get_filtered_entity_prototypes({ { filter = "type", type = "land-mine" } })) do
+  for _, prototype in pairs(prototypes.get_entity_filtered({ { filter = "type", type = "land-mine" } })) do
     local ammo_category = prototype.ammo_category
     if ammo_category and not icons[ammo_category] then
       icons[ammo_category] = "entity/" .. prototype.name
     end
   end
 
-  for _, prototype in pairs(game.get_filtered_entity_prototypes({ { filter = "type", type = "unit" } })) do
+  for _, prototype in pairs(prototypes.get_entity_filtered({ { filter = "type", type = "unit" } })) do
     local attack_parameters = prototype.attack_parameters --[[@as AttackParameters]]
     for _, category in pairs(attack_parameters.ammo_categories or { attack_parameters.ammo_type.category }) do
       if not icons[category] then
@@ -104,29 +104,38 @@ function cache.build_dictionaries()
   -- Build dictionaries
   dictionary.on_init()
   dictionary.new("recipe")
-  for name, recipe in pairs(game.recipe_prototypes) do
+  for name, recipe in pairs(prototypes.recipe) do
     dictionary.add("recipe", name, { "?", recipe.localised_name, name })
   end
   dictionary.new("technology")
-  for name, technology in pairs(game.technology_prototypes) do
+  for name, technology in pairs(prototypes.technology) do
     dictionary.add("technology", name, { "?", technology.localised_name, name })
   end
 end
 
 function cache.build_technologies()
   local profiler = game.create_profiler()
-  -- game.technology_prototypes is a LuaCustomTable, so we need to convert it to an array
+  -- prototypes.technology is a LuaCustomTable, so we need to convert it to an array
   --- @type LuaTechnologyPrototype[]
   local technologies = {}
-  for _, prototype in pairs(game.technology_prototypes) do
+  for _, prototype in pairs(prototypes.technology) do
     technologies[#technologies + 1] = prototype
   end
 
   -- Sort the technologies array
-  local prototypes = {
-    fluid = game.fluid_prototypes,
-    item = game.item_prototypes,
-  }
+  -- local l_prototypes = {
+  --   fluid = prototypes.fluid,
+  --   item = prototypes.item,
+  -- }
+  local l_prototypes = {}
+  local n = 0
+  for i, v in pairs(prototypes.fluid) do
+    l_prototypes[i] = v
+  end
+  for i, v in pairs(prototypes.item) do
+    l_prototypes[i] = v
+  end
+
   table.sort(technologies, function(tech_a, tech_b)
     local ingredients_a = tech_a.research_unit_ingredients
     local ingredients_b = tech_b.research_unit_ingredients
@@ -142,8 +151,8 @@ function cache.build_technologies()
       for i = 0, math.min(len_a, len_b) - 1 do
         local ingredient_a = ingredients_a[len_a - i]
         local ingredient_b = ingredients_b[len_b - i]
-        local order_a = prototypes[ingredient_a.type][ingredient_a.name].order
-        local order_b = prototypes[ingredient_b.type][ingredient_b.name].order
+        local order_a = l_prototypes[ingredient_a.name].order
+        local order_b = l_prototypes[ingredient_b.name].order
         -- Cheaper pack goes in front
         if order_a ~= order_b then
           return order_a < order_b
@@ -220,7 +229,7 @@ function cache.build_technologies()
     end
   end
   -- Step 2: Recursively assemble prerequisites for each technology
-  local tech_prototypes = game.technology_prototypes
+  local tech_prototypes = prototypes.technology
   local checked = {}
   --- @param tbl {[string]: boolean, [integer]: string}
   --- @param obj string
