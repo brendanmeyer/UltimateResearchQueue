@@ -118,9 +118,9 @@ function gui_util.frame_action_button(name, sprite, tooltip, action)
     name = name,
     style = "frame_action_button",
     tooltip = tooltip,
-    sprite = sprite .. "_white",
-    hovered_sprite = sprite .. "_black",
-    clicked_sprite = sprite .. "_black",
+    sprite = sprite,
+    hovered_sprite = sprite,
+    clicked_sprite = sprite,
     handler = { [defines.events.on_gui_click] = action },
   }
 end
@@ -315,10 +315,10 @@ end
 function gui_util.toggle_frame_action_button(elem, sprite_base, value)
   if value then
     elem.style = "flib_selected_frame_action_button"
-    elem.sprite = sprite_base .. "_black"
+    elem.sprite = sprite_base
   else
     elem.style = "frame_action_button"
-    elem.sprite = sprite_base .. "_white"
+    elem.sprite = sprite_base
   end
 end
 

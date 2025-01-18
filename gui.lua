@@ -329,7 +329,7 @@ end
 --- @param self Gui
 function gui.toggle_pinned(self)
   self.state.pinned = not self.state.pinned
-  gui_util.toggle_frame_action_button(self.elems.pin_button, "flib_pin", self.state.pinned)
+  gui_util.toggle_frame_action_button(self.elems.pin_button, "flib_pin_white", self.state.pinned)
   if self.state.pinned then
     self.player.opened = nil
     self.elems.search_button.tooltip = { "gui.search" }
@@ -770,7 +770,7 @@ gui.base_template = {
         { "gui.urq-search-instruction" },
         gui.toggle_search
       ),
-      gui_util.frame_action_button("pin_button", "flib_pin", { "gui.flib-keep-open" }, gui.toggle_pinned),
+      gui_util.frame_action_button("pin_button", "flib_pin_white", { "gui.flib-keep-open" }, gui.toggle_pinned),
       gui_util.frame_action_button("close_button", "utility/close", { "gui.close-instruction" }, gui.hide),
     },
     {
@@ -831,7 +831,7 @@ gui.base_template = {
             {
               type = "table",
               name = "queue_table",
-              style = "technology_slot_table",
+              style = "slot_table",
               column_count = 7,
             },
           },
@@ -894,7 +894,7 @@ gui.base_template = {
             { type = "label", style = "heading_2_label", caption = { "gui-technology-preview.unit-ingredients" } },
             {
               type = "flow",
-              style = "centering_horizontal_flow",
+              style = "horizontal_flow",
               {
                 type = "frame",
                 style = "slot_group_frame",
@@ -990,7 +990,7 @@ gui.base_template = {
           style = "urq_tech_list_scroll_pane",
           style_mods = { horizontally_stretchable = true, height = 100 * 7, width = 72 * 8 + 12 },
           vertical_scroll_policy = "auto-and-reserve-space",
-          { type = "table", name = "techs_table", style = "technology_slot_table", column_count = 8 },
+          { type = "table", name = "techs_table", style = "slot_table", column_count = 8 },
         },
       },
     },
