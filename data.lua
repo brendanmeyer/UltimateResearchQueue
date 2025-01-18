@@ -1,3 +1,26 @@
+local search_shortcut = {
+  type = "shortcut",
+  name = "urq-toggle-gui",
+  action = "lua",
+  associated_control_input = "urq-toggle-gui",
+  toggleable = true,
+  order = "d",
+  icon = "__UltimateResearchQueue2__/graphics/search-black.png",
+  icon_size = 26,
+  small_icon = "__UltimateResearchQueue2__/graphics/search-black.png",
+  small_icon_size = 26,
+}
+local search_input = {
+  type = "custom-input",
+  name = "urq-toggle-gui",
+  key_sequence = "SHIFT + F",
+  consuming = "none",
+  order = "a"
+}
+
+data:extend { search_shortcut, search_input }
+
+
 data:extend({
   {
     type = "custom-input",

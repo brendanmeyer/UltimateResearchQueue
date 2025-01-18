@@ -167,7 +167,7 @@ function gui_util.match_search_strings(technology, query, dictionaries)
   local to_search = {}
   if dictionaries then
     to_search[#to_search + 1] = dictionaries.technology[technology.name]
-    local effects = technology.effects
+    local effects = technology.prototype.effects
     for i = 1, #effects do
       local effect = effects[i]
       if effect.type == "unlock-recipe" then

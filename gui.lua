@@ -602,7 +602,7 @@ function gui.update_tech_info(self)
   effects_table.clear()
   flib_gui.add(
     effects_table,
-    table.map(technology.effects, function(effect)
+    table.map(technology.prototype.effects, function(effect)
       local template = gui_util.effect_button(effect, show_controls)
       template.handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book }
       return template
