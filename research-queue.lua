@@ -478,6 +478,11 @@ function research_queue.update_active_research(self)
       self.force.add_research(head.technology)
       self.updating_active_research = false
       self.force_table.last_research_progress = flib_technology.get_research_progress(head.technology, head.level)
+      if #head.technology.research_unit_ingredients == 0 then
+        for _, player in pairs(head.technology.force.players) do
+          player.print({ "", "Next Research requires player action: ", head.technology.prototype.localised_name })
+        end
+      end
     end
   else
     self.updating_active_research = true
