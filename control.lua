@@ -35,7 +35,10 @@ script.on_init(function()
   end
 end)
 
-migration.handle_on_configuration_changed(nil, migrations.generic)
+script.on_configuration_changed(function(data)
+  -- Recreate the cache
+  migrations.generic()
+end)
 
 -- Dictionaries
 
