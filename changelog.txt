@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.2
+Date: 2025-02-07
+  Changes:
+    - Fixed missing gui text - title and shortcut text
+    - Rebuild cache when there are mod changes - removed flib on_configuration_changed handler (limitation: does not process other mod changes)
+---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2025-01-21
   Changes:

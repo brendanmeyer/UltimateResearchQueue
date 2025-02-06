@@ -1,6 +1,6 @@
 {
   "name": "UltimateResearchQueue2",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "title": "Ultimate Research Queue for 2.x",
   "description": "Queue technologies for research, see research time ETAs, automatically research all prerequisites, auto-research infinite technologies.",
   "author": "brendanmeyer",
