@@ -290,7 +290,7 @@ end)
 remote.add_interface("urq", {
   get_queue = function(force)
     local force_id = game.forces[force].index
-    if not storage.forces[force_id] or not storage.forces[force_id].queue then
+    if not (storage.forces and storage.forces[force_id] and storage.forces[force_id].queue) then
       return {}
     end
     local queue = {}
