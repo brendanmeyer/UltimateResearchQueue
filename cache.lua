@@ -216,6 +216,310 @@ function cache.build_technologies()
 
   profiler.reset()
 
+  function topologicalSortByLevels(items)
+    local inDegree = {}
+    local graph = {}
+    local levels = {}
+
+    -- Initialize with all items
+    for itemId in pairs(items) do
+      inDegree[itemId] = 0
+      graph[itemId] = {}
+    end
+
+    -- Build dependency graph
+    for itemId, item in pairs(items) do
+      for _, prereqId in ipairs(item) do
+        if items[prereqId] then
+          graph[prereqId] = graph[prereqId] or {}
+          table.insert(graph[prereqId], itemId)
+          inDegree[itemId] = (inDegree[itemId] or 0) + 1
+        else
+          print("Warning: Missing prerequisite '" .. prereqId .. "' for item '" .. itemId .. "'")
+        end
+      end
+    end
+
+    -- Find starting nodes (no prerequisites)
+    local queue = {}
+    for itemId, degree in pairs(inDegree) do
+      if degree == 0 then
+        table.insert(queue, itemId)
+      end
+    end
+
+    -- Process by levels
+    local level = 1
+    while #queue > 0 do
+      levels[level] = {}
+      local nextQueue = {}
+
+      for _, itemId in ipairs(queue) do
+        table.insert(levels[level], itemId)
+
+        -- Process successors
+        for _, successorId in ipairs(graph[itemId] or {}) do
+          inDegree[successorId] = inDegree[successorId] - 1
+          if inDegree[successorId] == 0 then
+            table.insert(nextQueue, successorId)
+          end
+        end
+      end
+
+      table.sort(levels[level]) -- Optional: sort items within level
+      queue = nextQueue
+      level = level + 1
+    end
+
+    -- Check for cycles
+    local totalProcessed = 0
+    for _, levelItems in pairs(levels) do
+      totalProcessed = totalProcessed + #levelItems
+    end
+
+    if totalProcessed < #util.tableKeys(items) then
+      -- Find the cyclic items
+      local cyclicItems = {}
+      for itemId in pairs(items) do
+        if inDegree[itemId] and inDegree[itemId] > 0 then
+          table.insert(cyclicItems, itemId)
+        end
+      end
+      error("Dependency cycle detected involving: " .. table.concat(cyclicItems, ", "))
+    end
+
+    return levels
+  end
+
+  function levelsToFlatOrder(levels)
+    local flat = {}
+    for i = 1, #levels do
+      for _, itemId in ipairs(levels[i]) do
+        table.insert(flat, itemId)
+      end
+    end
+    return flat
+  end
+
+  function scienceLevelToFlatOrder(levels)
+    local flat = {}
+    for i = 1, #levels do
+      for _, itemId in ipairs(levels[i].items) do
+        table.insert(flat, itemId)
+      end
+    end
+    return flat
+  end
+
+  function buildScienceHierarchy(packs)
+    local levels = {}
+    local processed = {}
+
+    -- Track all science pack dependencies (only science packs, not regular techs)
+    local sciencePackDeps = {}
+    for packName, prereqs in pairs(packs) do
+      sciencePackDeps[packName] = {}
+      for _, prereq in ipairs(prereqs) do
+        if packs[prereq] then -- Only include if it's a science pack
+          table.insert(sciencePackDeps[packName], prereq)
+        end
+      end
+    end
+
+    -- Helper to get dependency depth
+    local function getDependencyDepth(packName, depthMap)
+      if depthMap[packName] then return depthMap[packName] end
+
+      local maxDepth = 0
+      for _, dep in ipairs(sciencePackDeps[packName] or {}) do
+        local depDepth = getDependencyDepth(dep, depthMap)
+        maxDepth = math.max(maxDepth, depDepth)
+      end
+
+      depthMap[packName] = maxDepth + 1
+      return depthMap[packName]
+    end
+
+    -- Calculate depths for all science packs
+    local depthMap = {}
+    for packName in pairs(packs) do
+      getDependencyDepth(packName, depthMap)
+    end
+
+    -- Group by depth
+    for packName, depth in pairs(depthMap) do
+      levels[depth] = levels[depth] or {}
+      table.insert(levels[depth], packName)
+    end
+
+    -- Sort levels
+    local sortedLevels = {}
+    for depth = 1, #levels do
+      if levels[depth] then
+        table.sort(levels[depth])
+        table.insert(sortedLevels, levels[depth])
+      end
+    end
+
+    return sortedLevels
+  end
+
+  -- Function to build item hierarchy based on science pack prerequisites
+  function buildItemHierarchy(items, scienceLevels)
+    local itemLevels = {}
+    local processed = {}
+
+    -- Create a quick lookup for science pack levels
+    local sciencePackLevels = {}
+    for level, packs in pairs(scienceLevels) do
+      for _, pack in ipairs(packs) do
+        sciencePackLevels[pack] = level + 1
+      end
+    end
+
+    -- Process from highest to lowest science level
+    for scienceLevel = #scienceLevels + 1, 2, -1 do
+      itemLevels[scienceLevel] = itemLevels[scienceLevel] or {}
+
+      for itemId, item in pairs(items) do
+        if not processed[itemId] and item then
+          -- Check if this item requires any science pack from current level
+          local requiresThisLevel = false
+          for _, prereq in ipairs(item) do
+            if sciencePackLevels[prereq] == scienceLevel then
+              requiresThisLevel = true
+              break
+            end
+          end
+
+          -- If it requires science from this level, add to next level
+          if requiresThisLevel then
+            table.insert(itemLevels[scienceLevel], itemId)
+            processed[itemId] = true
+          end
+        end
+      end
+    end
+
+    -- Add remaining items to level 1
+    itemLevels[1] = {}
+    for itemId, item in pairs(items) do
+      if not processed[itemId] then
+        table.insert(itemLevels[1], itemId)
+      end
+    end
+
+    -- Clean up empty levels and return
+    local cleanLevels = {}
+    for level = 1, #scienceLevels + 1 do
+      if itemLevels[level] and #itemLevels[level] > 0 then
+        table.sort(itemLevels[level])
+        cleanLevels[level] = itemLevels[level]
+      end
+    end
+
+    return cleanLevels
+  end
+
+  function getSciencePackCombinations(items, scienceLevels)
+    local combinations = {}
+    local sciencePackLevels = {}
+
+    -- Create quick lookup for science pack levels
+    for level, packs in pairs(scienceLevels) do
+      for _, pack in ipairs(packs) do
+        sciencePackLevels[pack] = level
+      end
+    end
+
+    -- Find all unique science pack combinations used by items
+    for itemId, item in pairs(items) do
+      -- Extract only science packs from prerequisites
+      local sciencePacks = {}
+      for _, prereq in ipairs(item) do
+        if sciencePackLevels[prereq] then
+          table.insert(sciencePacks, prereq)
+        end
+      end
+
+      -- Create unique key for this combination
+      if #sciencePacks > 0 then
+        table.sort(sciencePacks)
+        local comboKey = table.concat(sciencePacks, "|")
+
+        if not combinations[comboKey] then
+          combinations[comboKey] = {
+            key = comboKey,
+            sciencePacks = sciencePacks,
+            items = {},
+            maxLevel = 0
+          }
+
+          -- Calculate max science level in this combination
+          for _, pack in ipairs(sciencePacks) do
+            combinations[comboKey].maxLevel = math.max(
+              combinations[comboKey].maxLevel,
+              sciencePackLevels[pack]
+            )
+          end
+        end
+
+        table.insert(combinations[comboKey].items, itemId)
+      else
+        local comboKey = "<nil>"
+        if not combinations[comboKey] then
+          combinations[comboKey] = {
+            key = comboKey,
+            sciencePacks = sciencePacks,
+            items = {},
+            maxLevel = 0
+          }
+        end
+        table.insert(combinations[comboKey].items, itemId)
+      end
+    end
+
+    -- CONVERT TO ARRAY BEFORE SORTING
+    local combinationsArray = {}
+    for _, combo in pairs(combinations) do
+      table.insert(combinationsArray, combo)
+    end
+
+    -- Now sort the array
+    table.sort(combinationsArray, function(a, b)
+      if a.maxLevel ~= b.maxLevel then
+        return a.maxLevel < b.maxLevel
+      end
+      if #a.sciencePacks ~= #b.sciencePacks then
+        return #a.sciencePacks < #b.sciencePacks
+      end
+      return a.key < b.key
+    end)
+
+    return combinationsArray
+  end
+
+  local allTechs = {}
+  for _, basetech in pairs(base_techs) do
+    allTechs[basetech.name] = {}
+  end
+  allTechs = util.tableMerge(allTechs, prerequisites)
+
+  local scienceTechs = {}
+  for n, t in pairs(allTechs) do
+    if n:find("%-science%-pack") then
+      scienceTechs[n] = t
+    end
+  end
+
+  local scienceLevels = buildScienceHierarchy(scienceTechs)
+  -- local scienceLevelTechs = buildItemHierarchy(allTechs, scienceLevels)
+
+
+  -- Build and order combinations
+  local combinations = getSciencePackCombinations(allTechs, scienceLevels)
+  -- allTechs = topologicalSortByLevels(allTechs)
+  allTechs = scienceLevelToFlatOrder(combinations)
   -- table.sort(technologies, function(tech_a, tech_b)
   --   local ingredients_a = tech_a.research_unit_ingredients
   --   local ingredients_b = tech_b.research_unit_ingredients
@@ -272,9 +576,12 @@ function cache.build_technologies()
   local upgrade_groups = {}
   --- @type table<string, number>
   local order = {}
+  for i = #allTechs, 1, -1 do
+    local name = allTechs[i]
+    order[name] = i
+  end
   for i = 1, #technologies do
     local technology = technologies[i]
-    order[technology.name] = i
     if technology.upgrade then
       local base_name = string.match(technology.name, "^(.*)%-%d*$") or technology.name
       local upgrade_group = upgrade_groups[base_name]
