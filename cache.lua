@@ -2,6 +2,7 @@ local dictionary = require("__flib__.dictionary")
 
 local constants = require("constants")
 local research_queue = require("research-queue")
+local util = require("util")
 
 --- @class Cache
 local cache = {}
@@ -135,71 +136,7 @@ function cache.build_technologies()
   for i, v in pairs(prototypes.item) do
     l_prototypes[i] = v
   end
-
-  table.sort(technologies, function(tech_a, tech_b)
-    local ingredients_a = tech_a.research_unit_ingredients
-    local ingredients_b = tech_b.research_unit_ingredients
-    local len_a = #ingredients_a
-    local len_b = #ingredients_b
-    -- Always put technologies with zero ingredients at the front
-    if (len_a == 0) ~= (len_b == 0) then
-      return len_a == 0
-    end
-    if #ingredients_a > 0 then
-      -- Compare ingredient order strings
-      -- Check the most expensive packs first, and sort based on the first difference
-      for i = 0, math.min(len_a, len_b) - 1 do
-        local ingredient_a = ingredients_a[len_a - i]
-        local ingredient_b = ingredients_b[len_b - i]
-        local order_a = l_prototypes[ingredient_a.name].order
-        local order_b = l_prototypes[ingredient_b.name].order
-        -- Cheaper pack goes in front
-        if order_a ~= order_b then
-          return order_a < order_b
-        end
-      end
-      -- Sort the technology with fewer ingredients in front
-      if len_a ~= len_b then
-        return len_a < len_b
-      end
-    end
-    -- Compare technology order strings
-    local order_a = tech_a.order
-    local order_b = tech_b.order
-    if order_a ~= order_b then
-      return order_a < order_b
-    end
-    -- Compare prototype names
-    return tech_a.name < tech_b.name
-  end)
-
-  -- Create order lookup and assemble upgrade groups
-  --- @type table<string, LuaTechnologyPrototype[]>
-  local upgrade_groups = {}
-  --- @type table<string, number>
-  local order = {}
-  for i = 1, #technologies do
-    local technology = technologies[i]
-    order[technology.name] = i
-    if technology.upgrade then
-      local base_name = string.match(technology.name, "^(.*)%-%d*$") or technology.name
-      local upgrade_group = upgrade_groups[base_name]
-      if not upgrade_group then
-        upgrade_group = {}
-        upgrade_groups[base_name] = upgrade_group
-      end
-      upgrade_group[#upgrade_group + 1] = technology
-    end
-  end
-  -- Sort upgrade groups
-  for _, group in pairs(upgrade_groups) do
-    table.sort(group, function(a, b)
-      return a.level < b.level
-    end)
-  end
-
-  profiler.stop()
-  log({ "", "Tech Sorting ", profiler })
+  log({ "", "Tech Loaded ", profiler })
 
   profiler.reset()
 
@@ -276,6 +213,87 @@ function cache.build_technologies()
 
   profiler.stop()
   log({ "", "Prerequisite Generation ", profiler })
+
+  profiler.reset()
+
+  -- table.sort(technologies, function(tech_a, tech_b)
+  --   local ingredients_a = tech_a.research_unit_ingredients
+  --   local ingredients_b = tech_b.research_unit_ingredients
+  --   local len_a = #ingredients_a
+  --   local len_b = #ingredients_b
+  --   local prerequisites_a = tech_a.prerequisites
+  --   local prerequisites_b = tech_b.prerequisites
+  --   local len_prereq_a = #util.tableKeys(prerequisites_a)
+  --   local len_prereq_b = #util.tableKeys(prerequisites_b)
+  --   -- Always put technologies with zero prerequisites at the front
+  --   if (len_prereq_a == 0) ~= (len_prereq_b == 0) then
+  --     return len_prereq_a == 0
+  --   end
+  --   -- Always put technologies with the least cost at the front
+  --   local cost_a = tech_a.research_unit_count
+  --   local cost_b = tech_b.research_unit_count
+  --   if cost_a ~= cost_b then
+  --     return cost_a < cost_b
+  --   end
+  --   -- Always put technologies with zero ingredients at the front
+  --   -- if (len_a == 0) ~= (len_b == 0) then
+  --   --   return len_a == 0
+  --   -- end
+  --   -- if #ingredients_a > 0 then
+  --   --   -- Compare ingredient order strings
+  --   --   -- Check the most expensive packs first, and sort based on the first difference
+  --   --   for i = 0, math.min(len_a, len_b) - 1 do
+  --   --     local ingredient_a = ingredients_a[len_a - i]
+  --   --     local ingredient_b = ingredients_b[len_b - i]
+  --   --     local order_a = string.sub(l_prototypes[ingredient_a.name].order, 1, 1)
+  --   --     local order_b = string.sub(l_prototypes[ingredient_b.name].order, 1, 1)
+  --   --     -- Cheaper pack goes in front
+  --   --     if order_a ~= order_b then
+  --   --       return order_a < order_b
+  --   --     end
+  --   --   end
+  --   --   -- Sort the technology with fewer ingredients in front
+  --   --   if len_a ~= len_b then
+  --   --     return len_a < len_b
+  --   --   end
+  --   -- end
+  --   -- Compare technology order strings
+  --   -- local order_a = string.sub(tech_a.order, 1, 1)
+  --   -- local order_b = string.sub(tech_b.order, 1, 1)
+  --   -- if order_a ~= order_b then
+  --   --   return order_a < order_b
+  --   -- end
+  --   -- Compare prototype names
+  --   return tech_a.name < tech_b.name
+  -- end)
+
+  -- Create order lookup and assemble upgrade groups
+  --- @type table<string, LuaTechnologyPrototype[]>
+  local upgrade_groups = {}
+  --- @type table<string, number>
+  local order = {}
+  for i = 1, #technologies do
+    local technology = technologies[i]
+    order[technology.name] = i
+    if technology.upgrade then
+      local base_name = string.match(technology.name, "^(.*)%-%d*$") or technology.name
+      local upgrade_group = upgrade_groups[base_name]
+      if not upgrade_group then
+        upgrade_group = {}
+        upgrade_groups[base_name] = upgrade_group
+      end
+      upgrade_group[#upgrade_group + 1] = technology
+    end
+  end
+  -- Sort upgrade groups
+  for _, group in pairs(upgrade_groups) do
+    table.sort(group, function(a, b)
+      return a.level < b.level
+    end)
+  end
+
+  profiler.stop()
+  log({ "", "Tech Sorting ", profiler })
 
   storage.num_technologies = #technologies
   storage.technology_order = order
