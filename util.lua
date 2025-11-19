@@ -72,4 +72,12 @@ function util.should_show(technology, research_state, show_disabled)
   return show_disabled or technology.visible_when_disabled or research_state ~= constants.research_state.disabled
 end
 
+function util.tableKeys(tbl)
+  local keys = {}
+  for k in pairs(tbl) do
+    table.insert(keys, k)
+  end
+  return keys
+end
+
 return util
