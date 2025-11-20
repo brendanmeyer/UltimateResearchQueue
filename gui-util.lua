@@ -261,9 +261,6 @@ function gui_util.technology_slot(
       { "gui.urq-tooltip-add-to-queue-front" },
       { "gui.urq-tooltip-remove-from-queue" },
     }
-    if script.active_mods["RecipeBook"] then
-      tooltip[#tooltip + 1] = { "", "\n", { "gui.urq-tooltip-view-in-recipe-book" } }
-    end
     slot.tooltip = tooltip
   end
 

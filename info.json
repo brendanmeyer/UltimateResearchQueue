@@ -10,7 +10,7 @@
   "dependencies": [
     "base >= 2.0.28",
     "flib >= 0.16.1",
-    "? RecipeBook",
+    "? RecipeBook >= 4.0.0",
     "! sonaxaton-research-queue",
     "! UltimateResearchQueue"
   ]

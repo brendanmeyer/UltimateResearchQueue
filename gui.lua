@@ -208,10 +208,6 @@ function gui.on_tech_slot_click(self, e)
     util.schedule_force_update(self.force)
     return
   end
-  if script.active_mods["RecipeBook"] and e.alt then
-    remote.call("RecipeBook", "open_page", self.player.index, "technology", tech_name)
-    return
-  end
   if gui_util.is_double_click(e.element) then
     gui.start_research(self, technology, level, e.shift, e.control and util.is_cheating(self.player))
     return
@@ -260,10 +256,15 @@ function gui.open_in_recipe_book(self, e)
     return
   end
   local class, name = string.match(e.element.sprite, "(.*)/(.*)")
-  if class ~= "item" and class ~= "recipe" then
+  local prototype = nil
+  if class == "recipe" then
+    prototype = prototypes.recipe[name]
+  elseif class == "item" then
+    prototype = prototypes.item[name]
+  else
     return
   end
-  remote.call("RecipeBook", "open_page", self.player.index, class, name)
+  remote.call("RecipeBook", "open_page", self.player.index, prototype)
 end
 
 --- @param self Gui
