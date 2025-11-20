@@ -3,6 +3,7 @@ local flib_table = require("__flib__.table")
 
 local constants = require("constants")
 local research_queue = require("research-queue")
+local util = require("util")
 
 --- @class Cache
 local cache = {}
@@ -379,14 +380,18 @@ function cache.build_technologies()
   for _, basetech in pairs(base_techs) do
     allTechs[basetech.name] = {}
   end
-  allTechs = flib_table.deep_merge({allTechs, prerequisites})
+  allTechs = flib_table.deep_merge({ allTechs, prerequisites })
 
   -- Build a list of all the Science Pack items
+  local scienceTechNames = {}
   local scienceTechs = {}
-  for n, t in pairs(allTechs) do
-    if n:find("%-science%-pack") then
-      scienceTechs[n] = t
+  for _, itm in pairs(prototypes.entity) do
+    if itm.type == "lab" then
+      scienceTechNames = util.tableMergeUnique(scienceTechNames, itm.lab_inputs)
     end
+  end
+  for _, name in pairs(scienceTechNames) do
+    scienceTechs[name] = allTechs[name]
   end
 
   local scienceLevels = buildScienceHierarchy(scienceTechs)

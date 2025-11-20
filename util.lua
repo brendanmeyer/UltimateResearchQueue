@@ -72,4 +72,23 @@ function util.should_show(technology, research_state, show_disabled)
   return show_disabled or technology.visible_when_disabled or research_state ~= constants.research_state.disabled
 end
 
+function util.tableMergeUnique(...)
+  local result = {}
+  local seen = {}
+
+  for i = 1, select('#', ...) do
+    local t = select(i, ...)
+    if type(t) == "table" then
+      for _, v in ipairs(t) do
+        if not seen[v] then
+          table.insert(result, v)
+          seen[v] = true
+        end
+      end
+    end
+  end
+
+  return result
+end
+
 return util
