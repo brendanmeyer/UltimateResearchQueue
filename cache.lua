@@ -149,7 +149,9 @@ function cache.build_technologies()
   --- @type LuaTechnologyPrototype[]
   local base_techs = {}
   -- Step 1: Assemble descendants for each technology and determine base technologies
+  log({ "", "S1 ", profiler })
   for i = 1, #technologies do
+    log({ "", "S1-L1" .. i .. " ", profiler })
     local technology = technologies[i]
     local prerequisites = technology.prerequisites
     if next(prerequisites) then
@@ -167,6 +169,7 @@ function cache.build_technologies()
     end
   end
   -- Step 2: Recursively assemble prerequisites for each technology
+  log({ "", "S2 ", profiler })
   local tech_prototypes = prototypes.technology
   local checked = {}
   --- @param tbl {[string]: boolean, [integer]: string}
@@ -181,6 +184,7 @@ function cache.build_technologies()
   local function propagate(technology)
     -- If not all of the prerequisites have been checked, then the list would be incomplete
     for prerequisite_name in pairs(technology.prerequisites) do
+      log({ "", "S2-L1 ", profiler })
       if not checked[prerequisite_name] then
         return
       end
@@ -189,6 +193,7 @@ function cache.build_technologies()
     local technology_prerequisites = prerequisites[technology_name] or {}
     local technology_descendants = descendants[technology_name] or {}
     for i = 1, #technology_descendants do
+      log({ "", "S2-L2" .. i .. " ", profiler })
       local descendant_name = technology_descendants[i]
       -- Create the descendant's prerequisite table
       local descendant_prerequisites = prerequisites[descendant_name]
@@ -205,10 +210,12 @@ function cache.build_technologies()
     end
     checked[technology_name] = true
     for i = 1, #technology_descendants do
+      log({ "", "S2-L3" .. i .. " ", profiler })
       propagate(tech_prototypes[technology_descendants[i]])
     end
   end
   for _, technology in pairs(base_techs) do
+    log({ "", "S2-L4" .. i .. " ", profiler })
     propagate(technology)
   end
 
