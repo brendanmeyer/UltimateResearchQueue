@@ -577,26 +577,82 @@ function gui.update_tech_info(self)
   -- Ingredients
   local ingredients_table = self.elems.tech_info_ingredients_table
   ingredients_table.clear()
-  local ingredients_children = table.map(technology.research_unit_ingredients, function(ingredient)
-    return {
+  local ingredients_children = nil
+  if #technology.research_unit_ingredients > 0 then
+    ingredients_children = table.map(technology.research_unit_ingredients, function(ingredient)
+      return {
+        type = "sprite-button",
+        style = "transparent_slot",
+        sprite = "item/" .. ingredient.name,
+        number = ingredient.amount,
+        elem_tooltip = { type = "item", name = ingredient.name },
+        tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
+        handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
+      }
+    end)
+
+    flib_gui.add(ingredients_table, ingredients_children)
+    flib_gui.add(ingredients_table, {
+      type = "label",
+      style = "count_label",
+      caption = "[img=quantity-time] " .. format.number(math.round(technology.research_unit_energy / 60, 0.01), true),
+    })
+
+    local research_unit_count = flib_technology.get_research_unit_count(technology, level)
+    self.elems.tech_info_ingredients_count_label.caption = "[img=quantity-multiplier] "
+        .. format.number(research_unit_count, research_unit_count > 9999)
+  else
+    local sprite = nil
+    local number = 1
+    local label = "Craft"
+    local researchTrigger = technology.prototype.research_trigger
+    -- mine-entity=Mine __1__.
+    -- build-entity=Build __1__.
+    -- craft-item=Craft __1__.
+    -- craft-items=Craft __1__ __2__.
+    -- capture-spawner=Capture __1__.
+    -- capture-any-spawner=Capture any spawner.
+    -- create-space-platform=Create space platform
+    -- create-space-platform-specific=Create space platform by sending __1__ to space.
+    -- send-item-to-orbit=Send __1__ to orbit.
+
+    if researchTrigger.type == "mine-entity" then
+      label = { "technology_trigger.mine-entity" }
+      -- number = researchTrigger.count
+      sprite = "entity/" .. researchTrigger.entity
+    elseif researchTrigger.type == "build-entity" then
+      label = { "technology_trigger.build-entity" }
+      -- number = researchTrigger.
+      sprite = "entity/" .. researchTrigger.entity.name
+    elseif researchTrigger.type == "capture-spawner" then
+      label = "Capture "
+      -- number = researchTrigger.count
+      sprite = "technology/" .. technology.name
+    elseif researchTrigger.type == "create-space-platform" then
+      label = "Launch "
+      -- number = researchTrigger.count
+      sprite = "technology/" .. technology.name
+    else
+      label = "Craft "
+      number = researchTrigger.count
+      sprite = "item/" .. researchTrigger.item.name
+    end
+
+    flib_gui.add(ingredients_table, {
+      type = "label",
+      style = "label",
+      caption = label,
+    })
+    flib_gui.add(ingredients_table, {
       type = "sprite-button",
       style = "transparent_slot",
-      sprite = "item/" .. ingredient.name,
-      number = ingredient.amount,
-      elem_tooltip = { type = "item", name = ingredient.name },
+      sprite = sprite,
+      number = number,
+      -- elem_tooltip = { type = "item", name = ingredient.name },
       tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
       handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
-    }
-  end)
-  flib_gui.add(ingredients_table, ingredients_children)
-  flib_gui.add(ingredients_table, {
-    type = "label",
-    style = "count_label",
-    caption = "[img=quantity-time] " .. format.number(math.round(technology.research_unit_energy / 60, 0.01), true),
-  })
-  local research_unit_count = flib_technology.get_research_unit_count(technology, level)
-  self.elems.tech_info_ingredients_count_label.caption = "[img=quantity-multiplier] "
-      .. format.number(research_unit_count, research_unit_count > 9999)
+    })
+  end
 
   -- Effects
   local effects_table = self.elems.tech_info_effects_table
