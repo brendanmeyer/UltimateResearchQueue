@@ -216,92 +216,7 @@ function cache.build_technologies()
 
   profiler.reset()
 
-  function topologicalSortByLevels(items)
-    local inDegree = {}
-    local graph = {}
-    local levels = {}
-
-    -- Initialize with all items
-    for itemId in pairs(items) do
-      inDegree[itemId] = 0
-      graph[itemId] = {}
-    end
-
-    -- Build dependency graph
-    for itemId, item in pairs(items) do
-      for _, prereqId in ipairs(item) do
-        if items[prereqId] then
-          graph[prereqId] = graph[prereqId] or {}
-          table.insert(graph[prereqId], itemId)
-          inDegree[itemId] = (inDegree[itemId] or 0) + 1
-        else
-          print("Warning: Missing prerequisite '" .. prereqId .. "' for item '" .. itemId .. "'")
-        end
-      end
-    end
-
-    -- Find starting nodes (no prerequisites)
-    local queue = {}
-    for itemId, degree in pairs(inDegree) do
-      if degree == 0 then
-        table.insert(queue, itemId)
-      end
-    end
-
-    -- Process by levels
-    local level = 1
-    while #queue > 0 do
-      levels[level] = {}
-      local nextQueue = {}
-
-      for _, itemId in ipairs(queue) do
-        table.insert(levels[level], itemId)
-
-        -- Process successors
-        for _, successorId in ipairs(graph[itemId] or {}) do
-          inDegree[successorId] = inDegree[successorId] - 1
-          if inDegree[successorId] == 0 then
-            table.insert(nextQueue, successorId)
-          end
-        end
-      end
-
-      table.sort(levels[level]) -- Optional: sort items within level
-      queue = nextQueue
-      level = level + 1
-    end
-
-    -- Check for cycles
-    local totalProcessed = 0
-    for _, levelItems in pairs(levels) do
-      totalProcessed = totalProcessed + #levelItems
-    end
-
-    if totalProcessed < #util.tableKeys(items) then
-      -- Find the cyclic items
-      local cyclicItems = {}
-      for itemId in pairs(items) do
-        if inDegree[itemId] and inDegree[itemId] > 0 then
-          table.insert(cyclicItems, itemId)
-        end
-      end
-      error("Dependency cycle detected involving: " .. table.concat(cyclicItems, ", "))
-    end
-
-    return levels
-  end
-
-  function levelsToFlatOrder(levels)
-    local flat = {}
-    for i = 1, #levels do
-      for _, itemId in ipairs(levels[i]) do
-        table.insert(flat, itemId)
-      end
-    end
-    return flat
-  end
-
-  function scienceLevelToFlatOrder(levels)
+  local function scienceLevelToFlatOrder(levels)
     local flat = {}
     for i = 1, #levels do
       for _, itemId in ipairs(levels[i].items) do
@@ -311,7 +226,7 @@ function cache.build_technologies()
     return flat
   end
 
-  function buildScienceHierarchy(packs)
+  local function buildScienceHierarchy(packs)
     local levels = {}
     local processed = {}
 
@@ -364,64 +279,7 @@ function cache.build_technologies()
     return sortedLevels
   end
 
-  -- Function to build item hierarchy based on science pack prerequisites
-  function buildItemHierarchy(items, scienceLevels)
-    local itemLevels = {}
-    local processed = {}
-
-    -- Create a quick lookup for science pack levels
-    local sciencePackLevels = {}
-    for level, packs in pairs(scienceLevels) do
-      for _, pack in ipairs(packs) do
-        sciencePackLevels[pack] = level + 1
-      end
-    end
-
-    -- Process from highest to lowest science level
-    for scienceLevel = #scienceLevels + 1, 2, -1 do
-      itemLevels[scienceLevel] = itemLevels[scienceLevel] or {}
-
-      for itemId, item in pairs(items) do
-        if not processed[itemId] and item then
-          -- Check if this item requires any science pack from current level
-          local requiresThisLevel = false
-          for _, prereq in ipairs(item) do
-            if sciencePackLevels[prereq] == scienceLevel then
-              requiresThisLevel = true
-              break
-            end
-          end
-
-          -- If it requires science from this level, add to next level
-          if requiresThisLevel then
-            table.insert(itemLevels[scienceLevel], itemId)
-            processed[itemId] = true
-          end
-        end
-      end
-    end
-
-    -- Add remaining items to level 1
-    itemLevels[1] = {}
-    for itemId, item in pairs(items) do
-      if not processed[itemId] then
-        table.insert(itemLevels[1], itemId)
-      end
-    end
-
-    -- Clean up empty levels and return
-    local cleanLevels = {}
-    for level = 1, #scienceLevels + 1 do
-      if itemLevels[level] and #itemLevels[level] > 0 then
-        table.sort(itemLevels[level])
-        cleanLevels[level] = itemLevels[level]
-      end
-    end
-
-    return cleanLevels
-  end
-
-  function getSciencePackCombinations(items, scienceLevels)
+  local function getSciencePackCombinations(items, scienceLevels)
     local combinations = {}
     local sciencePackLevels = {}
 
@@ -479,13 +337,30 @@ function cache.build_technologies()
       end
     end
 
-    -- CONVERT TO ARRAY BEFORE SORTING
+    -- CONVERT TO ARRAY
     local combinationsArray = {}
     for _, combo in pairs(combinations) do
+      -- table.sort(combo.items, function(tech_a_name, tech_b_name)
+      --   local tech_a = prototypes.technology[tech_a_name]
+      --   local tech_b = prototypes.technology[tech_b_name]
+      --   -- Always put technologies with the least cost at the front
+      --   local cost_a = tech_a.research_unit_count
+      --   if tech_a.research_unit_energy == 0 and tech_a.research_trigger.count ~= nil then
+      --     cost_a = tech_a.research_trigger.count
+      --   end
+      --   local cost_b = tech_b.research_unit_count
+      --   if tech_b.research_unit_energy == 0 and tech_b.research_trigger.count ~= nil then
+      --     cost_b = tech_b.research_trigger.count
+      --   end
+      --   if cost_a ~= cost_b then
+      --     return cost_a < cost_b
+      --   end
+      --   -- Compare prototype names
+      --   return tech_a.name < tech_b.name
+      -- end)
       table.insert(combinationsArray, combo)
     end
 
-    -- Now sort the array
     table.sort(combinationsArray, function(a, b)
       if a.maxLevel ~= b.maxLevel then
         return a.maxLevel < b.maxLevel
@@ -499,12 +374,14 @@ function cache.build_technologies()
     return combinationsArray
   end
 
+  -- Build a list of all the techs with their prerequisites
   local allTechs = {}
   for _, basetech in pairs(base_techs) do
     allTechs[basetech.name] = {}
   end
   allTechs = util.tableMerge(allTechs, prerequisites)
 
+  -- Build a list of all the Science Pack items
   local scienceTechs = {}
   for n, t in pairs(allTechs) do
     if n:find("%-science%-pack") then
@@ -513,63 +390,8 @@ function cache.build_technologies()
   end
 
   local scienceLevels = buildScienceHierarchy(scienceTechs)
-  -- local scienceLevelTechs = buildItemHierarchy(allTechs, scienceLevels)
-
-
-  -- Build and order combinations
   local combinations = getSciencePackCombinations(allTechs, scienceLevels)
-  -- allTechs = topologicalSortByLevels(allTechs)
   allTechs = scienceLevelToFlatOrder(combinations)
-  -- table.sort(technologies, function(tech_a, tech_b)
-  --   local ingredients_a = tech_a.research_unit_ingredients
-  --   local ingredients_b = tech_b.research_unit_ingredients
-  --   local len_a = #ingredients_a
-  --   local len_b = #ingredients_b
-  --   local prerequisites_a = tech_a.prerequisites
-  --   local prerequisites_b = tech_b.prerequisites
-  --   local len_prereq_a = #util.tableKeys(prerequisites_a)
-  --   local len_prereq_b = #util.tableKeys(prerequisites_b)
-  --   -- Always put technologies with zero prerequisites at the front
-  --   if (len_prereq_a == 0) ~= (len_prereq_b == 0) then
-  --     return len_prereq_a == 0
-  --   end
-  --   -- Always put technologies with the least cost at the front
-  --   local cost_a = tech_a.research_unit_count
-  --   local cost_b = tech_b.research_unit_count
-  --   if cost_a ~= cost_b then
-  --     return cost_a < cost_b
-  --   end
-  --   -- Always put technologies with zero ingredients at the front
-  --   -- if (len_a == 0) ~= (len_b == 0) then
-  --   --   return len_a == 0
-  --   -- end
-  --   -- if #ingredients_a > 0 then
-  --   --   -- Compare ingredient order strings
-  --   --   -- Check the most expensive packs first, and sort based on the first difference
-  --   --   for i = 0, math.min(len_a, len_b) - 1 do
-  --   --     local ingredient_a = ingredients_a[len_a - i]
-  --   --     local ingredient_b = ingredients_b[len_b - i]
-  --   --     local order_a = string.sub(l_prototypes[ingredient_a.name].order, 1, 1)
-  --   --     local order_b = string.sub(l_prototypes[ingredient_b.name].order, 1, 1)
-  --   --     -- Cheaper pack goes in front
-  --   --     if order_a ~= order_b then
-  --   --       return order_a < order_b
-  --   --     end
-  --   --   end
-  --   --   -- Sort the technology with fewer ingredients in front
-  --   --   if len_a ~= len_b then
-  --   --     return len_a < len_b
-  --   --   end
-  --   -- end
-  --   -- Compare technology order strings
-  --   -- local order_a = string.sub(tech_a.order, 1, 1)
-  --   -- local order_b = string.sub(tech_b.order, 1, 1)
-  --   -- if order_a ~= order_b then
-  --   --   return order_a < order_b
-  --   -- end
-  --   -- Compare prototype names
-  --   return tech_a.name < tech_b.name
-  -- end)
 
   -- Create order lookup and assemble upgrade groups
   --- @type table<string, LuaTechnologyPrototype[]>
