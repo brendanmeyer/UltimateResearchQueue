@@ -1,8 +1,8 @@
 local dictionary = require("__flib__.dictionary")
+local flib_table = require("__flib__.table")
 
 local constants = require("constants")
 local research_queue = require("research-queue")
-local util = require("util")
 
 --- @class Cache
 local cache = {}
@@ -340,24 +340,24 @@ function cache.build_technologies()
     -- CONVERT TO ARRAY
     local combinationsArray = {}
     for _, combo in pairs(combinations) do
-      -- table.sort(combo.items, function(tech_a_name, tech_b_name)
-      --   local tech_a = prototypes.technology[tech_a_name]
-      --   local tech_b = prototypes.technology[tech_b_name]
-      --   -- Always put technologies with the least cost at the front
-      --   local cost_a = tech_a.research_unit_count
-      --   if tech_a.research_unit_energy == 0 and tech_a.research_trigger.count ~= nil then
-      --     cost_a = tech_a.research_trigger.count
-      --   end
-      --   local cost_b = tech_b.research_unit_count
-      --   if tech_b.research_unit_energy == 0 and tech_b.research_trigger.count ~= nil then
-      --     cost_b = tech_b.research_trigger.count
-      --   end
-      --   if cost_a ~= cost_b then
-      --     return cost_a < cost_b
-      --   end
-      --   -- Compare prototype names
-      --   return tech_a.name < tech_b.name
-      -- end)
+      table.sort(combo.items, function(tech_a_name, tech_b_name)
+        local tech_a = prototypes.technology[tech_a_name]
+        local tech_b = prototypes.technology[tech_b_name]
+        -- Always put technologies with the least cost at the front
+        local cost_a = tech_a.research_unit_count
+        if tech_a.research_unit_energy == 0 and tech_a.research_trigger.count ~= nil then
+          cost_a = tech_a.research_trigger.count
+        end
+        local cost_b = tech_b.research_unit_count
+        if tech_b.research_unit_energy == 0 and tech_b.research_trigger.count ~= nil then
+          cost_b = tech_b.research_trigger.count
+        end
+        if cost_a ~= cost_b then
+          return cost_a < cost_b
+        end
+        -- Compare prototype names
+        return tech_a.name < tech_b.name
+      end)
       table.insert(combinationsArray, combo)
     end
 
@@ -379,7 +379,7 @@ function cache.build_technologies()
   for _, basetech in pairs(base_techs) do
     allTechs[basetech.name] = {}
   end
-  allTechs = util.tableMerge(allTechs, prerequisites)
+  allTechs = flib_table.deep_merge({allTechs, prerequisites})
 
   -- Build a list of all the Science Pack items
   local scienceTechs = {}
