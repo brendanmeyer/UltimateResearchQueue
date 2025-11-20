@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.3
+Date: 2025-11-20
+  Changes:
+    - Fixed crash with RecipeBook - updated remoteinterface call and removed from technology list
+    - Updated sorting of technologies
+    - Added PR#11 from boomshroom for compatibility with simultaneous-research mod
+---------------------------------------------------------------------------------------------------
 Version: 2.0.2
 Date: 2025-02-07
   Changes:
