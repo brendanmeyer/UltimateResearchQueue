@@ -149,7 +149,7 @@ script.on_event(defines.events.on_research_started, function(e)
     end
     research_queue.remove(force_table.queue, technology, level)
   end
-  research_queue.push(force_table.queue, technology, level)
+  research_queue.push_front(force_table.queue, technology, level)
   util.schedule_force_update(force)
 end)
 
