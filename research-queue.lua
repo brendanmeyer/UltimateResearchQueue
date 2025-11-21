@@ -85,6 +85,11 @@ function research_queue.get_highest_level(self, technology)
 end
 
 --- @param technology LuaTechnology
+local function is_trigger_research(technology)
+  return technology.prototype.research_trigger ~= nil
+end
+
+--- @param technology LuaTechnology
 local function are_prereqs_satisfied(technology)
   for _, prerequisite in pairs(technology.prerequisites) do
     if not prerequisite.researched then
@@ -171,6 +176,8 @@ function research_queue.instant_research(self, technology)
   local research_state = self.force_table.research_states[technology.name]
   if research_state == constants.research_state.researched then
     return { "message.urq-already-researched" }
+  elseif is_trigger_research(technology) then
+    return { "message.urq-unable-to-queue" }
   end
   if research_state == constants.research_state.available then
     technology.researched = true
@@ -248,6 +255,8 @@ function research_queue.push(self, technology, level)
   local research_state = self.force_table.research_states[technology.name]
   if research_state == constants.research_state.researched then
     return { "message.urq-already-researched" }
+  elseif is_trigger_research(technology) then
+    return { "message.urq-unable-to-queue" }
   elseif research_state == constants.research_state.disabled then
     return { "message.urq-tech-is-disabled" }
   elseif research_queue.contains(self, technology, level) then
@@ -302,6 +311,8 @@ function research_queue.push_front(self, technology, level)
   local research_state = self.force_table.research_states[technology.name]
   if research_state == constants.research_state.researched then
     return { "message.urq-already-researched" }
+  elseif is_trigger_research(technology) then
+    return { "message.urq-unable-to-queue" }
   elseif research_queue.contains(self, technology, level) then
     -- TODO: Move to front of queue
     return { "message.urq-already-in-queue" }
@@ -484,7 +495,7 @@ function research_queue.update_active_research(self)
         end
         -- find next possible technology and move to the front of the queue
         local next_research = head
-        while next_research ~= nil and (next_research.technology.prototype.research_trigger ~= nil or are_prereqs_satisfied(next_research.technology) == false) do
+        while next_research ~= nil and (is_trigger_research(next_research.technology) or are_prereqs_satisfied(next_research.technology) == false) do
           next_research = next_research.next
         end
         if next_research ~= nil then
