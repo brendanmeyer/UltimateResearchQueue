@@ -34,6 +34,9 @@ function cache.build_effect_icons()
       if not icons[category] then
         icons[category] = "item/" .. prototype.name
       end
+      if not icons[category.name] then
+        icons[category.name] = "item/" .. prototype.name
+      end
     end
   end
 

@@ -42,6 +42,9 @@ function gui_util.effect_button(effect, show_controls)
     sprite = storage.effect_icons[effect.ammo_category]
     tooltip =
     { "modifier-description." .. effect.ammo_category .. "-damage-bonus", tostring(effect.modifier * 100) .. "%" }
+  elseif effect.type == "change-recipe-productivity" then
+    sprite = "recipe/" .. effect.recipe
+    elem_tooltip = { type = "recipe", name = effect.recipe }
   elseif effect.type == "give-item" then
     sprite = "item/" .. effect.item
     elem_tooltip = { type = "item", name = effect.item }
@@ -56,18 +59,27 @@ function gui_util.effect_button(effect, show_controls)
     }
   elseif effect.type == "nothing" then
     tooltip = effect.effect_description
+
   elseif effect.type == "turret-attack" then
     sprite = "entity/" .. effect.turret_id
     tooltip = {
       "modifier-description." .. effect.turret_id .. "-attack-bonus",
       tostring(effect.modifier * 100) .. "%",
     }
+  elseif effect.type == "unlock-quality" then
+    sprite = "quality/" .. effect.quality
+    tooltip = effect.effect_description
   elseif effect.type == "unlock-recipe" then
     sprite = "recipe/" .. effect.recipe
     elem_tooltip = { type = "recipe", name = effect.recipe }
     if show_controls and script.active_mods["RecipeBook"] then
       tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
+  -- elseif effect.type == "unlock-space-location" then
+  --   sprite = "planets/" .. effect.space_location
+  --   tooltip = effect.effect_description
+  elseif effect.type == "unlock-space-platforms" then
+    return nil
   else
     sprite = storage.effect_icons[effect.type] or ("utility/" .. string.gsub(effect.type, "%-", "_") .. "_modifier_icon")
     local modifier = effect.modifier

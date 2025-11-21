@@ -578,6 +578,7 @@ function gui.update_tech_info(self)
   local ingredients_table = self.elems.tech_info_ingredients_table
   ingredients_table.clear()
   local ingredients_children = nil
+  local researchTrigger = technology.prototype.research_trigger
   if #technology.research_unit_ingredients > 0 then
     ingredients_children = table.map(technology.research_unit_ingredients, function(ingredient)
       return {
@@ -601,41 +602,27 @@ function gui.update_tech_info(self)
     local research_unit_count = flib_technology.get_research_unit_count(technology, level)
     self.elems.tech_info_ingredients_count_label.caption = "[img=quantity-multiplier] "
         .. format.number(research_unit_count, research_unit_count > 9999)
-  else
-    local sprite = nil
+  elseif researchTrigger ~= nil then
+    local base = nil
+    local name = nil
     local number = 1
-    local label = "Craft"
-    local researchTrigger = technology.prototype.research_trigger
-    -- mine-entity=Mine __1__.
-    -- build-entity=Build __1__.
-    -- craft-item=Craft __1__.
-    -- craft-items=Craft __1__ __2__.
-    -- capture-spawner=Capture __1__.
-    -- capture-any-spawner=Capture any spawner.
-    -- create-space-platform=Create space platform
-    -- create-space-platform-specific=Create space platform by sending __1__ to space.
-    -- send-item-to-orbit=Send __1__ to orbit.
-
+    local label = { "technology-trigger." .. researchTrigger.type }
     if researchTrigger.type == "mine-entity" then
-      label = { "technology_trigger.mine-entity" }
-      -- number = researchTrigger.count
-      sprite = "entity/" .. researchTrigger.entity
+      base = "entity"
+      name = researchTrigger.entity
     elseif researchTrigger.type == "build-entity" then
-      label = { "technology_trigger.build-entity" }
-      -- number = researchTrigger.
-      sprite = "entity/" .. researchTrigger.entity.name
+      base = "entity"
+      name = researchTrigger.entity.name
     elseif researchTrigger.type == "capture-spawner" then
-      label = "Capture "
-      -- number = researchTrigger.count
-      sprite = "technology/" .. technology.name
+      base = "technology"
+      name = technology.name
     elseif researchTrigger.type == "create-space-platform" then
-      label = "Launch "
-      -- number = researchTrigger.count
-      sprite = "technology/" .. technology.name
+      base = "technology"
+      name = technology.name
     else
-      label = "Craft "
       number = researchTrigger.count
-      sprite = "item/" .. researchTrigger.item.name
+      base = "item"
+      name = researchTrigger.item.name
     end
 
     flib_gui.add(ingredients_table, {
@@ -646,12 +633,13 @@ function gui.update_tech_info(self)
     flib_gui.add(ingredients_table, {
       type = "sprite-button",
       style = "transparent_slot",
-      sprite = sprite,
+      sprite = base .. "/" .. name,
       number = number,
-      -- elem_tooltip = { type = "item", name = ingredient.name },
+      elem_tooltip = { type = base, name = name },
       tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
       handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
     })
+    self.elems.tech_info_ingredients_count_label.caption = ""
   end
 
   -- Effects
@@ -661,7 +649,9 @@ function gui.update_tech_info(self)
     effects_table,
     table.map(technology.prototype.effects, function(effect)
       local template = gui_util.effect_button(effect, show_controls)
-      template.handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book }
+      if template ~= nil then
+        template.handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book }
+      end
       return template
     end)
   )
