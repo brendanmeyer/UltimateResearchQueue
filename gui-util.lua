@@ -59,7 +59,6 @@ function gui_util.effect_button(effect, show_controls)
     }
   elseif effect.type == "nothing" then
     tooltip = effect.effect_description
-
   elseif effect.type == "turret-attack" then
     sprite = "entity/" .. effect.turret_id
     tooltip = {
@@ -75,9 +74,10 @@ function gui_util.effect_button(effect, show_controls)
     if show_controls and script.active_mods["RecipeBook"] then
       tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
     end
-  -- elseif effect.type == "unlock-space-location" then
-  --   sprite = "planets/" .. effect.space_location
-  --   tooltip = effect.effect_description
+  elseif effect.type == "unlock-space-location" then
+    sprite = "space-location/" .. effect.space_location
+    elem_tooltip = { type = "space-location", name = effect.space_location }
+    tooltip = effect.effect_description
   elseif effect.type == "unlock-space-platforms" then
     return nil
   else
