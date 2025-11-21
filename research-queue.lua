@@ -480,7 +480,22 @@ function research_queue.update_active_research(self)
       self.force_table.last_research_progress = flib_technology.get_research_progress(head.technology, head.level)
       if #head.technology.research_unit_ingredients == 0 then
         for _, player in pairs(head.technology.force.players) do
-          player.print({ "", "Next Research requires player action: ", head.technology.prototype.localised_name })
+          player.print({ "", { "message.urq-requires-player-action" }, head.technology.prototype.localised_name })
+        end
+        -- find next possible technology and move to the front of the queue
+        local next_research = head
+        while next_research ~= nil and (next_research.technology.prototype.research_trigger ~= nil or are_prereqs_satisfied(next_research.technology) == false) do
+          next_research = next_research.next
+        end
+        if next_research ~= nil then
+          self.updating_active_research = true
+          research_queue.move_to_front(self, next_research.technology, next_research.level)
+          self.force.add_research(next_research.technology)
+          self.updating_active_research = false
+          self.force_table.last_research_progress = flib_technology.get_research_progress(head.technology, head.level)
+          for _, player in pairs(head.technology.force.players) do
+            player.print({ "", { "message.urq-moved-to-front" }, next_research.technology.prototype.localised_name })
+          end
         end
       end
     end
