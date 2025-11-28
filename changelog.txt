@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.4
+Date: 2025-11-29
+  Changes:
+    - Temp workaround while flib PR is pending
+    - Fixed: cannot add trigger technology directly to the queue
+    - Enhance: trigger technologies are now non-blocking (providing there is another researchable technology in the queue)
+    - Fixed: most trigger and other icons
+---------------------------------------------------------------------------------------------------
 Version: 2.0.3
 Date: 2025-11-20
   Changes:
@@ -15,7 +23,7 @@ Date: 2025-02-07
 Version: 2.0.1
 Date: 2025-01-21
   Changes:
-    - Updated requirement for Fbib to 16.0.1 (Fixed a crash when using `flib_gui_templates.technology_slot()`)
+    - Updated requirement for flib to 0.16.1 (Fixed a crash when using `flib_gui_templates.technology_slot()`)
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Date: 2025-01-18

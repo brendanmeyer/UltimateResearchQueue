@@ -1,7 +1,7 @@
 local flib_format = require("__flib__.format")
 local flib_math = require("__flib__.math")
 local flib_table = require("__flib__.table")
-local flib_gui_templates = require("__flib__.gui-templates")
+local flib_gui_templates = require("temp_gui-templates")
 local flib_technology = require("__flib__.technology")
 
 local constants = require("constants")
