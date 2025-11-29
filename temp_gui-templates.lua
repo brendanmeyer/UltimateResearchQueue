@@ -95,7 +95,7 @@ function temp_flib_gui_templates.technology_slot(parent, technology, level, rese
     elseif researchTrigger.type == "craft-item" or researchTrigger.type == "craft-items" then
       name = "item/" .. researchTrigger.item.name
     elseif researchTrigger.type == "craft-fluid" or researchTrigger.type == "craft-fluids" then
-      name = "item/" .. researchTrigger.fluid
+      name = "fluid/" .. researchTrigger.fluid
     elseif researchTrigger.type == "create-space-platform" or researchTrigger.type == "create-space-platform-specific" then
       name = "technology/" .. technology.name
     elseif researchTrigger.type == "send-item-to-orbit" then
