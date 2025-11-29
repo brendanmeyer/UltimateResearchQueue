@@ -1,8 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.5
-Date: xxx
+Date: 2025-11-30
   Changes:
-    - xxx
+    - Fixed: trigger technologies icon for craft_fluid trigger
+    - Improvement/Fixed: considerably improved cached technology data calculations - fixes recursion with Py Streamline mod
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.4
 Date: 2025-11-29

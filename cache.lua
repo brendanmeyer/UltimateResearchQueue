@@ -171,7 +171,7 @@ function cache.build_technologies()
   end
   -- Step 2: Recursively assemble prerequisites for each technology
   local tech_prototypes = prototypes.technology
-  local checked = {}
+  -- local checked = {}
   --- @param tbl {[string]: boolean, [integer]: string}
   --- @param obj string
   local function unique_insert(tbl, obj)
@@ -182,36 +182,64 @@ function cache.build_technologies()
   end
   --- @param technology LuaTechnologyPrototype
   local function propagate(technology)
-    -- If not all of the prerequisites have been checked, then the list would be incomplete
-    for prerequisite_name in pairs(technology.prerequisites) do
-      if not checked[prerequisite_name] then
-        return
-      end
-    end
     local technology_name = technology.name
-    local technology_prerequisites = prerequisites[technology_name] or {}
-    local technology_descendants = descendants[technology_name] or {}
-    for i = 1, #technology_descendants do
-      local descendant_name = technology_descendants[i]
-      -- Create the descendant's prerequisite table
-      local descendant_prerequisites = prerequisites[descendant_name]
-      if not descendant_prerequisites then
-        descendant_prerequisites = {}
-        prerequisites[descendant_name] = descendant_prerequisites
-      end
-      -- Add all of this technology's prerequisites to the descendant's prerequisites
-      for i = 1, #technology_prerequisites do
-        unique_insert(descendant_prerequisites, technology_prerequisites[i])
-      end
-      -- Add this technology to the descendant's prerequisites
-      unique_insert(descendant_prerequisites, technology_name)
+
+    -- 1. Memoization Check: If we already calculated this tech, stop.
+    -- This prevents infinite recursion and redundant work.
+    if prerequisites[technology_name] then
+      return
     end
-    checked[technology_name] = true
-    for i = 1, #technology_descendants do
-      propagate(tech_prototypes[technology_descendants[i]])
+
+    -- 2. Recursive Prerequisite Check (The change you requested)
+    -- Instead of returning if a parent isn't ready, we force the parent to calculate now.
+    for parent_name in pairs(technology.prerequisites) do
+      if not prerequisites[parent_name] then
+        local parent_proto = tech_prototypes[parent_name]
+        if parent_proto then
+          propagate(parent_proto)
+        end
+      end
+    end
+
+    -- 3. Build the list (Earliest to Latest)
+    local my_prerequisites = {}
+    local seen = {}
+
+    for parent_name in pairs(technology.prerequisites) do
+      -- A. Add the Parent's Ancestors FIRST (The "Early" ones)
+      -- Since the parent was processed recursively, its list is already sorted earliest-to-latest.
+      local parent_ancestors = prerequisites[parent_name]
+      if parent_ancestors then
+        for i = 1, #parent_ancestors do
+          local ancestor_name = parent_ancestors[i]
+          if not seen[ancestor_name] then
+            seen[ancestor_name] = true
+            my_prerequisites[#my_prerequisites + 1] = ancestor_name
+          end
+        end
+      end
+
+      -- B. Add the Direct Parent LAST (The "Late" one)
+      -- The parent always comes after its own ancestors
+      if not seen[parent_name] then
+        seen[parent_name] = true
+        my_prerequisites[#my_prerequisites + 1] = parent_name
+      end
+    end
+
+    -- 4. Store Results
+    prerequisites[technology_name] = my_prerequisites
+
+    -- 5. Propagate Downwards
+    -- Now that we are done, notify children so they can proceed.
+    local technology_descendants = descendants[technology_name]
+    if technology_descendants then
+      for i = 1, #technology_descendants do
+        propagate(tech_prototypes[technology_descendants[i]])
+      end
     end
   end
-  for _, technology in pairs(base_techs) do
+  for i, technology in pairs(base_techs) do
     propagate(technology)
   end
 
