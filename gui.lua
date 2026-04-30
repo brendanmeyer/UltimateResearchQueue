@@ -606,7 +606,7 @@ function gui.update_tech_info(self)
     local base = nil
     local name = nil
     local number = 0
-    local label = { "technology-trigger." .. researchTrigger.type }
+    local label = { "urq-technology-trigger." .. researchTrigger.type }
     if researchTrigger.type == "mine-entity" then
       base = "entity"
       name = researchTrigger.entity
@@ -617,7 +617,7 @@ function gui.update_tech_info(self)
       base = "technology"
       name = technology.name
     elseif researchTrigger.type == "craft-fluid" or researchTrigger.type == "craft-fluids" then
-      label = { "technology-trigger.craft-items" }
+      label = { "urq-technology-trigger.craft-items" }
       base = "fluid"
       name = researchTrigger.fluid
       number = researchTrigger.amount
