@@ -729,7 +729,7 @@ function gui.update_tech_info_footer(self, progress_only)
     frame.visible = true
   end
 
-  local in_queue = research_queue.contains(self.force_table.queue, technology, level)
+  local in_queue = research_queue.contains(self.force_table.queue, technology, level, true)
   local progress = flib_technology.get_research_progress(technology, level)
 
   local progressbar = elems.tech_info_footer_progressbar
