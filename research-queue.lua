@@ -240,7 +240,7 @@ local function add_technology(to_research, technology, level, queue)
   if queue then
     lower = math.clamp(research_queue.get_highest_level(queue, technology) + 1, lower, technology.prototype.max_level) --[[@as uint]]
   end
-  for i = lower, level or technology.prototype.level + 5 do
+  for i = lower, level or math.min(technology.prototype.max_level, technology.prototype.level + 5) do
     --- @cast i uint
     to_research[#to_research + 1] = { technology = technology, level = i }
   end
@@ -334,11 +334,12 @@ function research_queue.push_front(self, technology, level)
   end
   -- Move higher levels of this tech forward
   if flib_technology.is_multilevel(technology) and research_queue.contains(self, technology, true) then
-    add_technology(to_move, technology, level - 1)
-  elseif research_queue.contains(self, technology, true) then
-    add_technology(to_move, technology)
+    local highest = research_queue.get_highest_level(self, technology)
+    add_technology(to_move, technology, highest)
   end
-  if not research_queue.contains(self, technology, level) then
+  if research_queue.contains(self, technology, level) then
+    add_technology(to_move, technology)
+  else
     add_technology(to_research, technology, level, self)
   end
   -- Check for errors
