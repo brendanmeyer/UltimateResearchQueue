@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.1
+Date: 2026-07-11
+  Changes:
+    - Thank you daz96050 for providing the following feature addition:
+    - Added: filter the technology list by science pack (#25) - toggle the science pack buttons above the list to show only technologies researchable with the selected packs; use "All" to clear the filter
+---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Date: 2026-07-11
   Changes:

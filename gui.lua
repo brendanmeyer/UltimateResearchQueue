@@ -19,6 +19,7 @@ local util = require("util")
 --- @field close_button LuaGuiElement
 --- @field techs_scroll_pane LuaGuiElement
 --- @field techs_table LuaGuiElement
+--- @field science_pack_filter_flow LuaGuiElement
 --- @field queue_population_label LuaGuiElement
 --- @field queue_requeue_multilevel_button LuaGuiElement
 --- @field queue_pause_button LuaGuiElement
@@ -82,6 +83,8 @@ function gui.filter_tech_list(self)
   local technologies = self.force.technologies
   local research_states = self.force_table.research_states
   local show_disabled = self.player.mod_settings["urq-show-disabled-techs"].value --[[@as boolean]]
+  local science_filter = self.state.science_pack_filter
+  local science_filter_active = next(science_filter) ~= nil
   local children = self.elems.techs_table.children
   for i = 1, #children do
     local button = children[i]
@@ -104,8 +107,85 @@ function gui.filter_tech_list(self)
     if disabled_matched and not search_matched then
       search_matched = gui_util.match_search_strings(technology, query, dictionaries)
     end
-    button.visible = disabled_matched and upgrade_matched and search_matched
+    -- Science pack filter (subset: only show techs whose science packs are all selected)
+    local science_matched = true
+    if science_filter_active then
+      local packs = storage.technology_science_packs and storage.technology_science_packs[technology_name]
+      if packs then
+        for pack in pairs(packs) do
+          if not science_filter[pack] then
+            science_matched = false
+            break
+          end
+        end
+      end
+    end
+    button.visible = disabled_matched and upgrade_matched and search_matched and science_matched
   end
+end
+
+--- Build the science pack filter toggle buttons (one per pack, plus an "All" reset).
+--- @param self Gui
+function gui.build_science_pack_filter(self)
+  local flow = self.elems.science_pack_filter_flow
+  flow.clear()
+  local filter = self.state.science_pack_filter
+  local any_selected = next(filter) ~= nil
+  --- @type table[]
+  local buttons = {
+    {
+      type = "sprite-button",
+      name = "urq_scifilter_all",
+      style = any_selected and "tool_button" or "flib_selected_tool_button",
+      caption = { "gui.urq-science-filter-all" },
+      tooltip = { "gui.urq-science-filter-all-tooltip" },
+      tags = { science_pack = "" },
+      handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
+    },
+  }
+  for _, pack in pairs(storage.science_packs or {}) do
+    buttons[#buttons + 1] = {
+      type = "sprite-button",
+      name = "urq_scifilter_" .. pack,
+      style = filter[pack] and "flib_selected_tool_button" or "tool_button",
+      sprite = "item/" .. pack,
+      elem_tooltip = { type = "item", name = pack },
+      tags = { science_pack = pack },
+      handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
+    }
+  end
+  flib_gui.add(flow, buttons)
+end
+
+--- @param self Gui
+function gui.update_science_pack_filter_styles(self)
+  local filter = self.state.science_pack_filter
+  local any_selected = next(filter) ~= nil
+  for _, button in pairs(self.elems.science_pack_filter_flow.children) do
+    local pack = button.tags.science_pack --[[@as string]]
+    if pack == "" then
+      button.style = any_selected and "tool_button" or "flib_selected_tool_button"
+    else
+      button.style = filter[pack] and "flib_selected_tool_button" or "tool_button"
+    end
+  end
+end
+
+--- @param self Gui
+--- @param e EventData.on_gui_click
+function gui.on_science_pack_filter_click(self, e)
+  local pack = e.element.tags.science_pack --[[@as string]]
+  local filter = self.state.science_pack_filter
+  if pack == "" then
+    -- "All" clears the filter
+    self.state.science_pack_filter = {}
+  elseif filter[pack] then
+    filter[pack] = nil
+  else
+    filter[pack] = true
+  end
+  gui.update_science_pack_filter_styles(self)
+  gui.filter_tech_list(self)
 end
 
 --- @param player_index uint
@@ -172,6 +252,8 @@ function gui.new(player)
       pending_update = false,
       pinned = false,
       research_state_counts = {},
+      --- @type table<string, boolean> Set of selected science pack names; empty means show all
+      science_pack_filter = {},
       search_open = false,
       search_query = "",
       --- @type TechnologyAndLevel?
@@ -180,6 +262,7 @@ function gui.new(player)
   }
   storage.guis[player.index] = self
 
+  gui.build_science_pack_filter(self)
   gui.update(self)
 
   return self
@@ -1040,6 +1123,12 @@ gui.base_template = {
           style = "subheader_frame",
           style_mods = { horizontally_stretchable = true },
           { type = "label", style = "subheader_caption_label", caption = { "gui-technologies-list.title" } },
+          { type = "empty-widget", style = "flib_horizontal_pusher" },
+          {
+            type = "flow",
+            name = "science_pack_filter_flow",
+            style_mods = { vertical_align = "center", horizontal_spacing = 4 },
+          },
         },
         {
           type = "scroll-pane",
