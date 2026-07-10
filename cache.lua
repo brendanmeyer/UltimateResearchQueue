@@ -119,7 +119,7 @@ function cache.build_dictionaries()
 end
 
 function cache.build_technologies()
-  local profiler = game.create_profiler()
+  local profiler = helpers.create_profiler()
   -- prototypes.technology is a LuaCustomTable, so we need to convert it to an array
   --- @type LuaTechnologyPrototype[]
   local technologies = {}

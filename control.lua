@@ -1,5 +1,4 @@
 local dictionary = require("__flib__.dictionary")
-local migration = require("__flib__.migration")
 local flib_technology = require("__flib__.technology")
 
 local gui = require("gui")

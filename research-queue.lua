@@ -77,7 +77,9 @@ function research_queue.get_highest_level(self, technology)
   local highest = 0
   while node do
     if node.technology == technology then
-      highest = math.max(node.level, highest)
+      if node.level > highest then
+        highest = node.level
+      end
     end
     node = node.next
   end
