@@ -460,11 +460,45 @@ function cache.build_technologies()
   profiler.stop()
   log({ "", "Tech Sorting ", profiler })
 
+  -- Science packs: the set of packs each technology needs, and the ordered list of all packs in use
+  --- @type table<string, table<string, boolean>>
+  local technology_science_packs = {}
+  --- @type table<string, boolean>
+  local science_pack_set = {}
+  for i = 1, #technologies do
+    local prototype = technologies[i]
+    --- @type table<string, boolean>
+    local packs = {}
+    for _, ingredient in pairs(prototype.research_unit_ingredients) do
+      packs[ingredient.name] = true
+      science_pack_set[ingredient.name] = true
+    end
+    technology_science_packs[prototype.name] = packs
+  end
+  -- Order the packs by their item prototype's order string (roughly science tier order)
+  --- @type string[]
+  local science_packs = {}
+  for name in pairs(science_pack_set) do
+    science_packs[#science_packs + 1] = name
+  end
+  local item_prototypes = prototypes.item
+  table.sort(science_packs, function(a, b)
+    local proto_a, proto_b = item_prototypes[a], item_prototypes[b]
+    local order_a = proto_a and proto_a.order or ""
+    local order_b = proto_b and proto_b.order or ""
+    if order_a == order_b then
+      return a < b
+    end
+    return order_a < order_b
+  end)
+
   storage.num_technologies = #technologies
   storage.technology_order = order
   storage.technology_prerequisites = prerequisites
   storage.technology_descendants = descendants
   storage.technology_upgrade_groups = upgrade_groups
+  storage.science_packs = science_packs
+  storage.technology_science_packs = technology_science_packs
 end
 
 --- @param force LuaForce

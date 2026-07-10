@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.11
+Date: 2026-07-10
+  Changes:
+    - Added: filter the technology list by science pack (#25) - toggle the science pack buttons above the list to show only technologies researchable with the selected packs; use "All" to clear the filter
+---------------------------------------------------------------------------------------------------
 Version: 2.0.10
 Date: 2026-07-09
   Changes:
