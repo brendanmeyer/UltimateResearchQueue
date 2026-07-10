@@ -1,8 +1,15 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.0.10
-Date: xxx
+Version: 2.1.0
+Date: 2026-07-11
   Changes:
-    - xxx
+    - minor code cleanup and fixes
+    - Thank you daz96050 for providing the following fixes:
+    - Fixed: crash on load with flib 0.17+ caused by a require of the removed __flib__.migration module (the require was unused)
+    - Fixed: crash on new game (create_profiler) - updated game.create_profiler() to helpers.create_profiler() for Factorio 2.x
+    - Fixed: crash when viewing a technology's details caused by flib 0.17 changing table.map to mutate in place - switched to the non-mutating table.mapped, which was corrupting the cached descendant/upgrade-group data
+    - Fixed: crash in multilevel research queue handling (get_highest_level) - the flib-shadowed math table has no math.max
+    - Fixed: crash when displaying time-based technology effect modifiers (format_time_short) - the flib-shadowed math table has no math.floor
+    - Fixed: gui-templates module was excluded from packaged builds because its filename matched the packager's temp_* exclusion pattern; renamed temp_gui-templates.lua to gui-templates.lua
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.9
 Date: 2025-12-15

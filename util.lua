@@ -1,5 +1,3 @@
-local math = require("__flib__.math")
-
 local constants = require("constants")
 
 local util = {}

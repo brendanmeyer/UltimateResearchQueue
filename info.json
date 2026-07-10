@@ -6,10 +6,10 @@
   "author": "brendanmeyer",
   "contact": "https://github.com/brendanmeyer/UltimateResearchQueue",
   "homepage": "https://github.com/brendanmeyer/UltimateResearchQueue",
-  "factorio_version": "2.0",
+  "factorio_version": "2.1",
   "dependencies": [
-    "base >= 2.0.28",
-    "flib >= 0.16.1",
+    "base >= 2.1",
+    "flib >= 0.17.1",
     "? RecipeBook >= 4.0.0",
     "! sonaxaton-research-queue",
     "! UltimateResearchQueue"

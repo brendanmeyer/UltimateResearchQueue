@@ -580,7 +580,7 @@ function gui.update_tech_info(self)
   local ingredients_children = nil
   local researchTrigger = technology.prototype.research_trigger
   if #technology.research_unit_ingredients > 0 then
-    ingredients_children = table.map(technology.research_unit_ingredients, function(ingredient)
+    ingredients_children = table.mapped(technology.research_unit_ingredients, function(ingredient)
       return {
         type = "sprite-button",
         style = "transparent_slot",
@@ -657,7 +657,7 @@ function gui.update_tech_info(self)
   effects_table.clear()
   flib_gui.add(
     effects_table,
-    table.map(technology.prototype.effects, function(effect)
+    table.mapped(technology.prototype.effects, function(effect)
       local template = gui_util.effect_button(effect, show_controls)
       if template ~= nil then
         template.handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book }
@@ -685,7 +685,7 @@ function gui.update_tech_info(self)
     self,
     self.elems.tech_info_descendants_table,
     gui.on_tech_slot_click,
-    table.map(storage.technology_descendants[technology.name] or {}, function(descendant_name)
+    table.mapped(storage.technology_descendants[technology.name] or {}, function(descendant_name)
       return technologies[descendant_name]
     end)
   )
@@ -696,7 +696,7 @@ function gui.update_tech_info(self)
     self,
     self.elems.tech_info_upgrade_group_table,
     gui.on_tech_slot_click,
-    table.map(storage.technology_upgrade_groups[flib_technology.get_base_name(technology)] or {}, function(prototype)
+    table.mapped(storage.technology_upgrade_groups[flib_technology.get_base_name(technology)] or {}, function(prototype)
       return technologies[prototype.name]
     end)
   )

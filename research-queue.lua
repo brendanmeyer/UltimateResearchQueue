@@ -77,7 +77,7 @@ function research_queue.get_highest_level(self, technology)
   local highest = 0
   while node do
     if node.technology == technology then
-      highest = math.max(node.level, highest)
+      highest = math.maximum({node.level, highest})
     end
     node = node.next
   end
@@ -240,7 +240,7 @@ local function add_technology(to_research, technology, level, queue)
   if queue then
     lower = math.clamp(research_queue.get_highest_level(queue, technology) + 1, lower, technology.prototype.max_level) --[[@as uint]]
   end
-  for i = lower, level or math.min(technology.prototype.max_level, technology.prototype.level + 5) do
+  for i = lower, level or math.minimum({technology.prototype.max_level, technology.prototype.level + 5}) do
     --- @cast i uint
     to_research[#to_research + 1] = { technology = technology, level = i }
   end
