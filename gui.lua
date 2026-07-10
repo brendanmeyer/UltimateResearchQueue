@@ -609,7 +609,7 @@ function gui.update_tech_info(self)
     local label = { "urq-technology-trigger." .. researchTrigger.type }
     if researchTrigger.type == "mine-entity" then
       base = "entity"
-      name = researchTrigger.entity
+      name = researchTrigger.entities[1]
     elseif researchTrigger.type == "build-entity" then
       base = "entity"
       name = researchTrigger.entity.name
