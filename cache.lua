@@ -473,6 +473,10 @@ function cache.build_technologies()
       packs[ingredient.name] = true
       science_pack_set[ingredient.name] = true
     end
+    if prototype.research_trigger ~= nil then
+      packs["triggered"] = true
+      science_pack_set["triggered"] = true
+    end
     technology_science_packs[prototype.name] = packs
   end
   -- Order the packs by their item prototype's order string (roughly science tier order)

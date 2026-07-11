@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.2
+Date: 2026-07-11
+  Changes:
+    - Fixed: science pack filter now can filter trigged technologies
+    - Fixed: able to display all science packs in the selection filter
+---------------------------------------------------------------------------------------------------
 Version: 2.1.1
 Date: 2026-07-11
   Changes:

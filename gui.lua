@@ -129,6 +129,7 @@ end
 function gui.build_science_pack_filter(self)
   local flow = self.elems.science_pack_filter_flow
   flow.clear()
+  local header = self.elems.righthand_subheader_frame
   local filter = self.state.science_pack_filter
   local any_selected = next(filter) ~= nil
   --- @type table[]
@@ -142,18 +143,30 @@ function gui.build_science_pack_filter(self)
       tags = { science_pack = "" },
       handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
     },
+    {
+      type = "sprite-button",
+      name = "urq_scifilter_triggered",
+      style = filter["triggered"] and "flib_selected_tool_button" or "tool_button",
+      sprite = "item/spidertron-remote",
+      tooltip = { "gui.urq-science-filter-triggered-tooltip" },
+      tags = { science_pack = "triggered" },
+      handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
+    },
   }
   for _, pack in pairs(storage.science_packs or {}) do
-    buttons[#buttons + 1] = {
-      type = "sprite-button",
-      name = "urq_scifilter_" .. pack,
-      style = filter[pack] and "flib_selected_tool_button" or "tool_button",
-      sprite = "item/" .. pack,
-      elem_tooltip = { type = "item", name = pack },
-      tags = { science_pack = pack },
-      handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
-    }
+    if pack ~= "triggered" then
+      buttons[#buttons + 1] = {
+        type = "sprite-button",
+        name = "urq_scifilter_" .. pack,
+        style = filter[pack] and "flib_selected_tool_button" or "tool_button",
+        sprite = "item/" .. pack,
+        elem_tooltip = { type = "item", name = pack },
+        tags = { science_pack = pack },
+        handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
+      }
+    end
   end
+  header.style.height = math.ceiled((#buttons + 2) / 14) * 32
   flib_gui.add(flow, buttons)
 end
 
@@ -1120,14 +1133,17 @@ gui.base_template = {
         direction = "vertical",
         {
           type = "frame",
+          name = "righthand_subheader_frame",
           style = "subheader_frame",
           style_mods = { horizontally_stretchable = true },
           { type = "label", style = "subheader_caption_label", caption = { "gui-technologies-list.title" } },
           { type = "empty-widget", style = "flib_horizontal_pusher" },
           {
-            type = "flow",
+            type = "table",
             name = "science_pack_filter_flow",
+            -- style = "slot_table",
             style_mods = { vertical_align = "center", horizontal_spacing = 4 },
+            column_count = 14
           },
         },
         {
