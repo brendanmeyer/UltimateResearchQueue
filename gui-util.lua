@@ -48,8 +48,8 @@ function gui_util.effect_button(effect, show_controls)
   elseif effect.type == "give-item" then
     sprite = "item/" .. effect.item
     elem_tooltip = { type = "item", name = effect.item }
-    if show_controls and script.active_mods["RecipeBook"] then
-      tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
+    if show_controls then
+      tooltip = { "gui.urq-tooltip-view-in-factoriopedia" }
     end
   elseif effect.type == "gun-speed" then
     sprite = storage.effect_icons[effect.ammo_category]
@@ -71,8 +71,8 @@ function gui_util.effect_button(effect, show_controls)
   elseif effect.type == "unlock-recipe" then
     sprite = "recipe/" .. effect.recipe
     elem_tooltip = { type = "recipe", name = effect.recipe }
-    if show_controls and script.active_mods["RecipeBook"] then
-      tooltip = { "gui.urq-tooltip-view-in-recipe-book" }
+    if show_controls then
+      tooltip = { "gui.urq-tooltip-view-in-factoriopedia" }
     end
   elseif effect.type == "unlock-space-location" then
     sprite = "space-location/" .. effect.space_location

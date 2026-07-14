@@ -1,6 +1,6 @@
 {
   "name": "UltimateResearchQueue2",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "title": "Ultimate Research Queue for 2.x",
   "description": "Queue technologies for research, see research time ETAs, automatically research all prerequisites, auto-research infinite technologies.",
   "author": "brendanmeyer",
@@ -10,7 +10,6 @@
   "dependencies": [
     "base >= 2.1",
     "flib >= 0.17.1",
-    "? RecipeBook >= 4.0.0",
     "! sonaxaton-research-queue",
     "! UltimateResearchQueue"
   ]
