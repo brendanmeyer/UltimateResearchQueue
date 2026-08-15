@@ -12,6 +12,7 @@
     "flib >= 0.17.1",
     "? RecipeBook >= 4.0.0",
     "! sonaxaton-research-queue",
-    "! UltimateResearchQueue"
+    "! UltimateResearchQueue",
+    "! awesome-rqm"
   ]
 }
