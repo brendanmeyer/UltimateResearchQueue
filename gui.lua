@@ -347,20 +347,20 @@ end
 
 --- @param self Gui
 --- @param e EventData.on_gui_click
-function gui.open_in_recipe_book(self, e)
-  if not script.active_mods["RecipeBook"] or not e.alt then
+function gui.open_in_factoriopedia(self, e)
+  if not e.alt or not e.element.sprite then
     return
   end
   local class, name = string.match(e.element.sprite, "(.*)/(.*)")
-  local prototype = nil
-  if class == "recipe" then
-    prototype = prototypes.recipe[name]
-  elseif class == "item" then
-    prototype = prototypes.item[name]
-  else
+  if not class or not name then
     return
   end
-  remote.call("RecipeBook", "open_page", self.player.index, prototype)
+  -- Sprite classes use dashes (e.g. "space-location"); prototype tables use underscores.
+  local group = prototypes[string.gsub(class, "%-", "_")]
+  local prototype = group and group[name]
+  if prototype then
+    self.player.open_factoriopedia_gui(prototype)
+  end
 end
 
 --- @param self Gui
@@ -683,8 +683,8 @@ function gui.update_tech_info(self)
         sprite = "item/" .. ingredient.name,
         number = ingredient.amount,
         elem_tooltip = { type = "item", name = ingredient.name },
-        tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
-        handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
+        tooltip = show_controls and { "gui.urq-tooltip-view-in-factoriopedia" },
+        handler = { [defines.events.on_gui_click] = gui.open_in_factoriopedia },
       }
     end)
 
@@ -740,8 +740,8 @@ function gui.update_tech_info(self)
       style = "transparent_slot",
       sprite = base .. "/" .. name,
       elem_tooltip = { type = base, name = name },
-      tooltip = show_controls and script.active_mods["RecipeBook"] and { "gui.urq-tooltip-view-in-recipe-book" },
-      handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book },
+      tooltip = show_controls and { "gui.urq-tooltip-view-in-factoriopedia" },
+      handler = { [defines.events.on_gui_click] = gui.open_in_factoriopedia },
     }
     if number and number > 0 then ingredient["number"] = number end
     flib_gui.add(ingredients_table, ingredient)
@@ -756,7 +756,7 @@ function gui.update_tech_info(self)
     table.mapped(technology.prototype.effects, function(effect)
       local template = gui_util.effect_button(effect, show_controls)
       if template ~= nil then
-        template.handler = { [defines.events.on_gui_click] = gui.open_in_recipe_book }
+        template.handler = { [defines.events.on_gui_click] = gui.open_in_factoriopedia }
       end
       return template
     end)
