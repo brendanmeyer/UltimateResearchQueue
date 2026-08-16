@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.3
-Date: 2026-07-14
+Date: 2026-08-16
   Changes:
     - Fixed: alt+clicking items, recipes, and other effects in the technology info panel now opens the base-game Factoriopedia instead of the no-longer-updated Recipe Book
     - Removed the optional Recipe Book dependency
