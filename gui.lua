@@ -48,6 +48,25 @@ local util = require("util")
 --- @class GuiMod
 local gui = {}
 
+local function is_infinite_or_prod_tech(technology)
+  local proto = technology.prototype
+  local is_repeatable = flib_technology.is_multilevel(technology) or technology.upgrade or proto.max_level > 1
+  if not is_repeatable then
+    return false
+  end
+  if string.find(technology.name, "productivity", 1, true) then
+    return true
+  end
+  for _, effect in pairs(proto.effects or {}) do
+    if effect.type == "change-recipe-productivity"
+      or effect.type == "mining-drill-productivity-bonus"
+      or effect.type == "laboratory-productivity" then
+      return true
+    end
+  end
+  return proto.max_level == math.max_uint
+end
+
 --- @param self Gui
 function gui.cancel_selected_research(self)
   local selected = self.state.selected
@@ -85,6 +104,7 @@ function gui.filter_tech_list(self)
   local show_disabled = self.player.mod_settings["urq-show-disabled-techs"].value --[[@as boolean]]
   local science_filter = self.state.science_pack_filter
   local science_filter_active = next(science_filter) ~= nil
+  local hide_infinite_prod = self.state.hide_infinite_prod
   local children = self.elems.techs_table.children
   for i = 1, #children do
     local button = children[i]
@@ -102,12 +122,14 @@ function gui.filter_tech_list(self)
         research_states
       )
     end
+    -- Hide infinite / productivity spam
+    local infinite_prod_matched = not (hide_infinite_prod and is_infinite_or_prod_tech(technology))
     -- Search query
-    local search_matched = #query == 0 -- Automatically pass search on empty query
-    if disabled_matched and not search_matched then
+    local search_matched = #query == 0
+    if disabled_matched and infinite_prod_matched and not search_matched then
       search_matched = gui_util.match_search_strings(technology, query, dictionaries)
     end
-    -- Science pack filter (subset: only show techs whose science packs are all selected)
+    -- Science pack filter
     local science_matched = true
     if science_filter_active then
       local packs = storage.technology_science_packs and storage.technology_science_packs[technology_name]
@@ -120,7 +142,7 @@ function gui.filter_tech_list(self)
         end
       end
     end
-    button.visible = disabled_matched and upgrade_matched and search_matched and science_matched
+    button.visible = disabled_matched and upgrade_matched and infinite_prod_matched and search_matched and science_matched
   end
 end
 
@@ -131,8 +153,7 @@ function gui.build_science_pack_filter(self)
   flow.clear()
   local header = self.elems.righthand_subheader_frame
   local filter = self.state.science_pack_filter
-  local any_selected = next(filter) ~= nil
-  --- @type table[]
+  local any_selected = next(filter) ~= nil or self.state.hide_infinite_prod
   local buttons = {
     {
       type = "sprite-button",
@@ -141,6 +162,15 @@ function gui.build_science_pack_filter(self)
       caption = { "gui.urq-science-filter-all" },
       tooltip = { "gui.urq-science-filter-all-tooltip" },
       tags = { science_pack = "" },
+      handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
+    },
+    {
+      type = "sprite-button",
+      name = "urq_hide_infinite_prod",
+      style = self.state.hide_infinite_prod and "flib_selected_tool_button" or "tool_button",
+      sprite = "item/productivity-module-3",
+      tooltip = "Hide infinite & repeatable productivity researches",
+      tags = { science_pack = "hide_infinite_prod" },
       handler = { [defines.events.on_gui_click] = gui.on_science_pack_filter_click },
     },
     {
@@ -173,11 +203,13 @@ end
 --- @param self Gui
 function gui.update_science_pack_filter_styles(self)
   local filter = self.state.science_pack_filter
-  local any_selected = next(filter) ~= nil
+  local any_selected = next(filter) ~= nil or self.state.hide_infinite_prod
   for _, button in pairs(self.elems.science_pack_filter_flow.children) do
-    local pack = button.tags.science_pack --[[@as string]]
+    local pack = button.tags.science_pack
     if pack == "" then
       button.style = any_selected and "tool_button" or "flib_selected_tool_button"
+    elseif pack == "hide_infinite_prod" then
+      button.style = self.state.hide_infinite_prod and "flib_selected_tool_button" or "tool_button"
     else
       button.style = filter[pack] and "flib_selected_tool_button" or "tool_button"
     end
@@ -187,11 +219,13 @@ end
 --- @param self Gui
 --- @param e EventData.on_gui_click
 function gui.on_science_pack_filter_click(self, e)
-  local pack = e.element.tags.science_pack --[[@as string]]
+  local pack = e.element.tags.science_pack
   local filter = self.state.science_pack_filter
   if pack == "" then
-    -- "All" clears the filter
     self.state.science_pack_filter = {}
+    self.state.hide_infinite_prod = false
+  elseif pack == "hide_infinite_prod" then
+    self.state.hide_infinite_prod = not self.state.hide_infinite_prod
   elseif filter[pack] then
     filter[pack] = nil
   else
@@ -205,7 +239,8 @@ end
 --- @return Gui?
 function gui.get(player_index)
   local self = storage.guis[player_index]
-  if not self or not self.elems.urq_window.valid or not self.player.valid then
+  if not self or not self.elems.urq_window.valid or not self.player.valid
+    or not self.elems.science_pack_filter_flow["urq_hide_infinite_prod"] then
     if self and self.player.valid then
       self.player.print({ "message.urq-recreated-gui" })
     end
@@ -261,6 +296,7 @@ function gui.new(player)
     force_table = force_table,
     player = player,
     state = {
+      hide_infinite_prod = false,
       opening_graph = false,
       pending_update = false,
       pinned = false,
